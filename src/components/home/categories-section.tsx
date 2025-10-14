@@ -14,7 +14,7 @@ const categories = [
     name: "Hot Snacks",
     slug: "hot-snacks",
     description: "Freshly prepared hot snacks and savories",
-    image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=400&fit=crop&crop=center",
+    image: "https://www.indianhealthyrecipes.com/wp-content/uploads/2021/12/butter-murukku-768x1152.webp",
     count: "15+ Varieties",
   },
   {
