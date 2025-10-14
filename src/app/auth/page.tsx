@@ -1,11 +1,8 @@
+"use client";
+
 import { Metadata } from 'next';
 import AuthCard from '@/components/AuthCard';
 import { signIn } from 'next-auth/react';
-
-export const metadata: Metadata = {
-  title: 'Sign In / Sign Up - Kotaiah\'s Sweets & Foods',
-  description: 'Sign in to your account or create a new one to enjoy our premium Indian sweets, snacks, and gift boxes.',
-};
 
 export default function AuthPage() {
   // Example integration with NextAuth
