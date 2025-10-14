@@ -2,6 +2,7 @@
   "name": "sweets-",
   "version": "0.1.0",
   "private": true,
+  "_comment": "Updated for Vercel deployment with db_POSTGRES_URL",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
