@@ -14,7 +14,7 @@ export function ContactForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission here
-    console.log("Form submitted:", formData);
+    // Form submitted - in production, this would send data to API endpoint
   };
 
   const handleChange = (
@@ -31,13 +31,13 @@ export function ContactForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100"
+      className="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-[#fff9e6]"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-[#8B1A1A] mb-2"
           >
             Full Name *
           </label>
@@ -48,14 +48,14 @@ export function ContactForm() {
             required
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7B1E2D] focus:border-transparent hover:border-[#7B1E2D]/50 transition-colors"
-            placeholder="Your full name"
+            className="w-full px-4 py-3 border border-[#fff9e6] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent hover:border-[#8B1A1A]/50 transition-colors text-[#8B1A1A]"
+            placeholder="Enter your full name"
           />
         </div>
         <div>
           <label
             htmlFor="phone"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-[#8B1A1A] mb-2"
           >
             Phone Number
           </label>
@@ -65,8 +65,8 @@ export function ContactForm() {
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7B1E2D] focus:border-transparent hover:border-[#7B1E2D]/50 transition-colors"
-            placeholder="Your phone number"
+            className="w-full px-4 py-3 border border-[#fff9e6] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent hover:border-[#8B1A1A]/50 transition-colors text-[#8B1A1A]"
+            placeholder="Enter your phone number"
           />
         </div>
       </div>
@@ -74,7 +74,7 @@ export function ContactForm() {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-[#8B1A1A] mb-2"
         >
           Email Address *
         </label>
@@ -85,15 +85,15 @@ export function ContactForm() {
           required
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7B1E2D] focus:border-transparent"
-          placeholder="your.email@example.com"
+          className="w-full px-4 py-3 border border-[#fff9e6] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent text-[#8B1A1A]"
+          placeholder="Enter your email address"
         />
       </div>
 
       <div>
         <label
           htmlFor="subject"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-[#8B1A1A] mb-2"
         >
           Subject *
         </label>
@@ -104,36 +104,36 @@ export function ContactForm() {
             required
             value={formData.subject}
             onChange={handleChange}
-            className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7B1E2D] focus:border-transparent appearance-none bg-white cursor-pointer hover:border-[#7B1E2D]/50 transition-colors"
+            className="w-full px-4 py-3 pr-10 border border-[#fff9e6] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent appearance-none bg-white cursor-pointer hover:border-[#8B1A1A]/50 transition-colors text-[#8B1A1A]"
           >
-            <option value="" disabled className="text-gray-400">
+            <option value="" disabled className="text-[#8B1A1A]">
               Choose a topic...
             </option>
-            <option value="order" className="text-gray-900">
+            <option value="order" className="text-[#8B1A1A]">
               🛒 Order Inquiry
             </option>
-            <option value="product" className="text-gray-900">
+            <option value="product" className="text-[#8B1A1A]">
               🍯 Product Question
             </option>
-            <option value="delivery" className="text-gray-900">
+            <option value="delivery" className="text-[#8B1A1A]">
               🚚 Delivery Information
             </option>
-            <option value="feedback" className="text-gray-900">
+            <option value="feedback" className="text-[#8B1A1A]">
               💬 Feedback
             </option>
-            <option value="complaint" className="text-gray-900">
+            <option value="complaint" className="text-[#8B1A1A]">
               ⚠️ Complaint
             </option>
-            <option value="partnership" className="text-gray-900">
+            <option value="partnership" className="text-[#8B1A1A]">
               🤝 Partnership
             </option>
-            <option value="other" className="text-gray-900">
+            <option value="other" className="text-[#8B1A1A]">
               📝 Other
             </option>
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
             <svg
-              className="w-5 h-5 text-gray-400"
+              className="w-5 h-5 text-[#8B1A1A]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -152,7 +152,7 @@ export function ContactForm() {
       <div>
         <label
           htmlFor="message"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-[#8B1A1A] mb-2"
         >
           Message *
         </label>
@@ -163,14 +163,14 @@ export function ContactForm() {
           rows={5}
           value={formData.message}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7B1E2D] focus:border-transparent"
-          placeholder="Tell us how we can help you..."
+          className="w-full px-4 py-3 border border-[#fff9e6] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent text-[#8B1A1A]"
+          placeholder="Enter your message here..."
         />
       </div>
 
       <button
         type="submit"
-        className="w-full bg-gradient-to-r from-[#7B1E2D] to-[#C79A2A] text-white py-3 px-6 rounded-lg font-medium hover:from-[#C79A2A] hover:to-[#7B1E2D] hover:text-[#7B1E2D] transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+        className="w-full bg-gradient-to-r from-[#8B1A1A] to-[#D4AF37] text-white py-3 px-6 rounded-lg font-medium hover:from-[#D4AF37] hover:to-[#8B1A1A] transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
       >
         <span className="flex items-center justify-center gap-2">
           <svg

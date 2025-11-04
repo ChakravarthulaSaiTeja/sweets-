@@ -3,8 +3,9 @@
 :root {
   --background: #fff7ee;
   --foreground: #2d2d2d;
-  --primary: #7b1e2d;
-  --accent: #c79a2a;
+  --primary: #8B1A1A;
+  --accent: #D4AF37;
+  --secondary: #FFB347;
 }
 
 @theme inline {
@@ -16,13 +17,22 @@
   --font-body: var(--font-inter);
 }
 
+html,
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: #1a1a1a;
   font-family: var(--font-body);
   line-height: 1.6;
 }
 
+/* Default text colors - ensure visibility */
 h1,
 h2,
 h3,
@@ -32,6 +42,58 @@ h6 {
   font-family: var(--font-heading);
   font-weight: 600;
   line-height: 1.2;
+  color: #8B1A1A;
+}
+
+p,
+span,
+div,
+li,
+td,
+th {
+  color: inherit;
+}
+
+/* Ensure text visibility - Tailwind classes handle specific styling */
+
+/* Hero section - ensure white text on gradient background */
+section[class*="bg-gradient"] h1,
+section[class*="bg-gradient"] h2,
+section[class*="bg-gradient"] h3,
+section[class*="bg-gradient"] p,
+section[class*="bg-gradient"] span:not([class*="text-["]) {
+  color: white;
+}
+
+/* Footer - ensure white text on dark background */
+footer {
+  color: #ffffff !important;
+}
+
+footer h1,
+footer h2,
+footer h3,
+footer h4,
+footer h5,
+footer h6,
+footer p,
+footer span,
+footer div,
+footer li,
+footer a {
+  color: #ffffff !important;
+}
+
+/* Gold-colored elements in footer should remain gold */
+footer [style*="#D4AF37"],
+footer [style*="color: #D4AF37"],
+footer .text-\[#D4AF37\] {
+  color: #D4AF37 !important;
+}
+
+/* Footer link hover state */
+footer a:hover {
+  color: #D4AF37 !important;
 }
 
 /* Force default scrollbar */
@@ -86,10 +148,10 @@ h6 {
 
 @keyframes glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(123, 30, 45, 0.3);
+    box-shadow: 0 0 20px rgba(22, 163, 74, 0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba(123, 30, 45, 0.6);
+    box-shadow: 0 0 30px rgba(22, 163, 74, 0.6);
   }
 }
 
@@ -125,26 +187,26 @@ h6 {
 
 /* Focus styles */
 *:focus {
-  outline: 2px solid #c79a2a;
+  outline: 2px solid #D4AF37;
   outline-offset: 2px;
 }
 
 /* Button styles */
 .btn-primary {
-  @apply bg-red-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-900 focus:ring-2 focus:ring-red-800 focus:ring-offset-2 transition-all duration-200;
+  @apply bg-[#8B1A1A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#7A1515] focus:ring-2 focus:ring-[#8B1A1A] focus:ring-offset-2 transition-all duration-200;
 }
 
 .btn-secondary {
-  @apply bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-yellow-700 focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 transition-all duration-200;
+  @apply bg-[#D4AF37] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#B8941F] focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 transition-all duration-200;
 }
 
 .btn-outline {
-  @apply border-2 border-red-800 text-red-800 px-6 py-3 rounded-lg font-medium hover:bg-red-800 hover:text-white focus:ring-2 focus:ring-red-800 focus:ring-offset-2 transition-all duration-200;
+  @apply border-2 border-[#8B1A1A] text-[#8B1A1A] px-6 py-3 rounded-lg font-medium hover:bg-[#8B1A1A] hover:text-white focus:ring-2 focus:ring-[#8B1A1A] focus:ring-offset-2 transition-all duration-200;
 }
 
 /* Card styles */
 .card {
-  @apply bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden;
+  @apply bg-white rounded-lg shadow-lg border border-[#f0fdf4] overflow-hidden;
 }
 
 .card-hover {
@@ -153,12 +215,84 @@ h6 {
 
 /* Form styles */
 .form-input {
-  @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent transition-all duration-200;
+  @apply w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] transition-all duration-200 text-[#8B1A1A];
 }
 
-.form-label {
-  @apply block text-sm font-medium text-gray-700 mb-2;
+    .form-label {
+      @apply block text-sm font-medium text-[#8B1A1A] mb-2;
+    }
+
+    /* Sign In button hover styles - clean and reliable */
+    .signin-button-link {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .signin-button-link::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: #8B1A1A;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1;
+    }
+
+    .signin-button-link:hover::before {
+      opacity: 1;
+    }
+
+    .signin-button-content {
+      position: relative;
+      z-index: 10;
+      color: #8B1A1A;
+      transition: color 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .signin-button-arrow {
+      transition: transform 0.3s ease, color 0.3s ease;
+      color: #8B1A1A;
+    }
+
+    .signin-button-link:hover .signin-button-content,
+    .signin-button-link:hover .signin-button-arrow {
+      color: #ffffff !important;
+    }
+
+    .signin-button-link:hover .signin-button-arrow {
+      transform: translateX(4px);
+    }
+
+/* Input placeholder styles - visible but subtle */
+input::placeholder,
+textarea::placeholder {
+  color: #FFB347;
+  opacity: 0.7;
 }
+
+input:focus::placeholder,
+textarea:focus::placeholder {
+  color: #FFB347;
+  opacity: 0.5;
+}
+
+/* Ensure all inputs have visible text */
+input,
+textarea,
+select {
+  color: #8B1A1A !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  color: #8B1A1A !important;
+}
+
 
 /* Loading animation */
 @keyframes pulse {
@@ -169,6 +303,97 @@ h6 {
   50% {
     opacity: 0.5;
   }
+}
+
+/* Notification animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Cart notification animations */
+@keyframes cartNotificationSlideIn {
+  from {
+    transform: translateX(-50%) translateY(-100px);
+    opacity: 0;
+    scale: 0.8;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes cartNotificationSlideOut {
+  from {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    transform: translateX(-50%) translateY(-100px);
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+/* Fade in animation for admin cards */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Navigation link hover effects - each button works independently */
+.nav-link:hover .nav-link-glow {
+  background: linear-gradient(to right, rgba(139, 26, 26, 0.15), rgba(212, 175, 55, 0.15), rgba(255, 179, 71, 0.15));
+  opacity: 1;
+}
+
+.nav-link:hover .nav-link-bg {
+  background: linear-gradient(to right, rgba(139, 26, 26, 0.1), rgba(212, 175, 55, 0.1));
+  transform: scale(1);
+}
+
+.nav-link:hover .nav-link-text {
+  font-weight: 700;
+}
+
+.nav-link:hover .nav-link-underline {
+  width: 3rem;
+  opacity: 1;
+}
+
+.nav-link:hover .nav-link-highlight {
+  width: 100%;
+}
+
+.nav-link:hover .nav-link-pulse {
+  transform: scale(1.5);
+  opacity: 0;
 }
 
 .animate-pulse {

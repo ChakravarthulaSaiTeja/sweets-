@@ -45,10 +45,10 @@ export function CategoriesSection() {
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl font-heading font-bold text-[#8B1A1A] mb-4">
             Shop by Category
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-[#8B1A1A] max-w-2xl mx-auto">
             Explore our wide range of traditional Indian delicacies, each
             category offering unique flavors and authentic recipes.
           </p>
@@ -71,17 +71,17 @@ export function CategoriesSection() {
                 />
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-red-800 transition-colors">
+                <h3 className="text-lg font-semibold text-[#8B1A1A] mb-2 group-hover:text-[#FFB347] transition-colors">
                   {category.name}
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-[#8B1A1A] mb-3">
                   {category.description}
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-yellow-600 font-medium">
+                  <span className="text-xs text-[#D4AF37] font-medium">
                     {category.count}
                   </span>
-                  <ArrowRight className="h-4 w-4 text-red-800 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="h-4 w-4 text-[#FFB347] group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             </Link>

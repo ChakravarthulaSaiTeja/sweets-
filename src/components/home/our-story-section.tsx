@@ -36,11 +36,11 @@ export function OurStorySection() {
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-heading font-bold text-text-primary mb-4">
+          <h2 className="text-3xl sm:text-4xl font-heading font-bold text-[#8B1A1A] mb-4">
             Our Story
           </h2>
-          <p className="text-lg text-text-secondary max-w-3xl mx-auto">
-            For over 124 years, Kotaiah's Sweets & Foods has been crafting
+          <p className="text-lg text-[#8B1A1A] max-w-3xl mx-auto">
+            For over 124 years, Kotaiah&apos;s Foods has been crafting
             authentic Indian sweets using traditional recipes passed down
             through generations. Our commitment to quality and authenticity has
             made us a beloved institution in Hyderabad and beyond.
@@ -51,31 +51,31 @@ export function OurStorySection() {
           {milestones.map((milestone, index) => (
             <div key={milestone.year} className="text-center">
               <div className="relative mb-6">
-                <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-[#8B1A1A] rounded-full flex items-center justify-center mx-auto mb-4">
                   <milestone.icon className="h-8 w-8 text-white" />
                 </div>
-                <div className="text-4xl font-heading font-bold text-primary-500 mb-2">
+                <div className="text-4xl font-heading font-bold text-[#8B1A1A] mb-2">
                   {milestone.year}
                 </div>
                 {index < milestones.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gray-200 transform translate-x-4"></div>
+                  <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-[#fff9e6] transform translate-x-4"></div>
                 )}
               </div>
-              <h3 className="text-xl font-semibold text-text-primary mb-3">
+              <h3 className="text-xl font-semibold text-[#8B1A1A] mb-3">
                 {milestone.title}
               </h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-[#8B1A1A] leading-relaxed">
                 {milestone.description}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="mt-16 bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl p-8 text-white text-center" style={{backgroundColor: '#7B1E2D', color: 'white'}}>
-          <h3 className="text-2xl font-heading font-bold mb-4 text-white" style={{color: 'white'}}>
+        <div className="mt-16 bg-gradient-to-r from-[#8B1A1A] to-[#7A1515] rounded-2xl p-8 text-white text-center">
+          <h3 className="text-2xl font-heading font-bold mb-4 text-white">
             Our Promise to You
           </h3>
-          <p className="text-lg text-white max-w-3xl mx-auto font-medium" style={{color: 'white', fontSize: '18px', fontWeight: '500'}}>
+          <p className="text-lg text-white max-w-3xl mx-auto font-medium">
             We promise to continue delivering the same authentic taste and
             quality that has made us a trusted name for over 124 years. Every
             sweet we make is crafted with love, using traditional methods and

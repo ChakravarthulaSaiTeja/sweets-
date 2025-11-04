@@ -17,10 +17,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (if using Prisma)
+# RUN npx prisma generate
 
 # Build the application
+# Note: For image optimization to work, ensure next.config.ts has output: 'standalone' 
+# or no output setting (for SSG). Image optimization requires a Node.js runtime.
 RUN npm run build
 
 # Production image, copy all the files and run next
