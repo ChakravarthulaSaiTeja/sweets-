@@ -86,7 +86,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_NAME="Kotaiah's Foods"
 ```
 
-> **Note**: This application uses localStorage for data persistence, so environment variables are optional for basic functionality. They may be needed for advanced features like email notifications or payment processing.
+> **Note**: This application uses **Neon Postgres** for data persistence. Environment variables are required for database connection. See [DEPLOYMENT.md](./DEPLOYMENT.md) for production setup.
 
 ### Next.js Configuration
 
@@ -314,14 +314,15 @@ npx tsc --noEmit
 npm run lint -- --fix
 ```
 
-#### 5. localStorage Not Working
+#### 5. Database Connection Issues
 
-**Issue**: Data not persisting
+**Issue**: Database connection fails
 
 **Solution**:
-- Check browser console for errors
-- Verify localStorage is enabled
-- Check browser private/incognito mode (localStorage may be restricted)
+- Verify `DATABASE_URL` is set correctly in `.env.local`
+- Check Neon dashboard to ensure database is running
+- Verify connection string includes `?sslmode=require`
+- Check Prisma logs for connection errors
 
 ### Development Tips
 

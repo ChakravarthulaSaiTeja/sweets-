@@ -4,7 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { razorpay } from "@/lib/razorpay";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth-helpers";
 
@@ -41,7 +40,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Razorpay order
+    // Create Razorpay order (lazy load)
+    const { getRazorpay } = await import("@/lib/razorpay");
+    const razorpay = await getRazorpay();
+    
+    if (!razorpay) {
+      return NextResponse.json(
+        { error: "Payment gateway not configured. Please use Cash on Delivery." },
+        { status: 503 }
+      );
+    }
+    
     const razorpayOrder = await razorpay.orders.create({
       amount: Math.round(order.totalAmount * 100), // Convert to paise
       currency: "INR",

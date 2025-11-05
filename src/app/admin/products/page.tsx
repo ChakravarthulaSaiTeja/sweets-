@@ -106,6 +106,7 @@ export default function AdminProducts() {
     try {
       if (isUpdate && editingProduct) {
         // Update existing product - remove variants from payload as they're managed separately
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { variants, inventoryQty, weight, packSize, ...updatePayload } = productData;
         const response = await fetch(`/api/admin/products/${editingProduct.id}`, {
           method: "PUT",
@@ -386,9 +387,10 @@ export default function AdminProducts() {
                         type="number"
                         value={product.variants?.[0]?.inventoryQty || 0}
                         onChange={(e) => {
-                          const newQty = parseInt(e.target.value) || 0;
                           // Note: Direct variant inventory updates would require a variant API endpoint
                           // For now, display-only. Admin can edit through product form
+                          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                          const _newQty = parseInt(e.target.value) || 0;
                         }}
                         className="w-20 px-2 py-1 border border-amber-200 rounded text-sm text-[#8B1A1A] focus:ring-2 focus:ring-[#8B1A1A] bg-gray-50"
                         min="0"

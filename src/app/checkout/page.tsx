@@ -112,7 +112,7 @@ export default function CheckoutPage() {
       addressPincode: formData.pincode,
       deliveryDate: formData.deliveryDate,
       deliverySlot: formData.deliverySlot,
-      paymentMethod: formData.paymentMethod === "cod" ? "COD" : "RAZORPAY",
+      paymentMethod: "COD", // Always COD - Razorpay temporarily disabled
       subtotal,
       taxAmount: tax,
       shippingAmount: shipping,
@@ -141,6 +141,11 @@ export default function CheckoutPage() {
       // Clear cart
       await clearCart();
 
+      // Redirect to order confirmation for COD
+      // (Razorpay integration code kept below for future re-enablement)
+      router.push(`/order-confirmation?orderNumber=${order.orderNumber}`);
+
+      /* Razorpay integration - Temporarily disabled
       // If payment method is online, initiate Razorpay payment
       if (formData.paymentMethod === "online") {
         try {
@@ -233,6 +238,7 @@ export default function CheckoutPage() {
         // Redirect to order confirmation for COD
         router.push(`/order-confirmation?orderNumber=${order.orderNumber}`);
       }
+      */
     } catch (error) {
       console.error("Error creating order:", error);
       alert(error instanceof Error ? error.message : "Failed to create order. Please try again.");
@@ -459,17 +465,19 @@ export default function CheckoutPage() {
                   Payment Method
                 </h2>
                 <div className="space-y-3">
-                  <label className="flex items-center p-4 border-2 border-amber-200 rounded-lg cursor-pointer hover:border-[#8B1A1A] transition-colors">
+                  <label className="flex items-center p-4 border-2 border-amber-200 rounded-lg cursor-pointer">
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="cod"
-                      checked={formData.paymentMethod === "cod"}
-                      onChange={handleInputChange}
+                      checked={true}
+                      readOnly
                       className="mr-3"
                     />
                     <span className="text-[#8B1A1A] font-medium">Cash on Delivery (COD)</span>
                   </label>
+                  {/* Online Payment option temporarily disabled */}
+                  {/* 
                   <label className="flex items-center p-4 border-2 border-amber-200 rounded-lg cursor-pointer hover:border-[#8B1A1A] transition-colors">
                     <input
                       type="radio"
@@ -479,8 +487,9 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       className="mr-3"
                     />
-                    <span className="text-[#8B1A1A] font-medium">Online Payment (Coming Soon)</span>
+                    <span className="text-[#8B1A1A] font-medium">Online Payment</span>
                   </label>
+                  */}
                 </div>
               </div>
 

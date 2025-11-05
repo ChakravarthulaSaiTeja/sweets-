@@ -1,36 +1,98 @@
 /**
  * Orders API Route
- * POST /api/orders - Create new order
- * GET /api/orders - Get user's orders (requires authentication)
+ * 
+ * This file handles order creation and retrieval operations.
+ * 
+ * Endpoints:
+ * - POST /api/orders - Create a new order from cart items
+ * - GET /api/orders - Retrieve all orders for the authenticated user
+ * 
+ * Order Creation Flow:
+ * 1. Validate order data (items, address, payment method)
+ * 2. Check inventory availability for all items
+ * 3. Generate unique order number
+ * 4. Use database transaction to:
+ *    - Create order record
+ *    - Deduct inventory from variants
+ *    - Create order items (linking products to order)
+ * 5. Clear user's cart after successful order
+ * 6. Return order confirmation
+ * 
+ * Why Transactions?
+ * - Ensures atomicity: either ALL operations succeed or ALL fail
+ * - Prevents race conditions: if two users order the last item simultaneously, only one succeeds
+ * - Prevents overselling: inventory is checked and deducted in one atomic operation
+ * 
+ * Authentication:
+ * - POST: User can be authenticated OR guest (guest orders stored with userId=null)
+ * - GET: Requires authentication (only authenticated users can view their orders)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth-helpers";
 
+/**
+ * POST /api/orders
+ * 
+ * Creates a new order from cart items.
+ * 
+ * Steps:
+ * 1. Parse and validate request body (items, address, payment info)
+ * 2. Get current user (if authenticated)
+ * 3. Generate unique order number
+ * 4. Validate all items exist and have sufficient inventory
+ * 5. Use database transaction to create order and deduct inventory atomically
+ * 6. Return order confirmation with order number
+ * 
+ * Request Body Format:
+ * {
+ *   items: [{ variantId, quantity, ... }],  // Cart items
+ *   addressName: "John Doe",
+ *   addressPhone: "1234567890",
+ *   addressStreet: "123 Main St",
+ *   addressCity: "City",
+ *   addressState: "State",
+ *   addressPincode: "123456",
+ *   deliveryDate: "2024-01-15",
+ *   deliverySlot: "Morning",
+ *   paymentMethod: "COD",
+ *   subtotal: 1000,
+ *   taxAmount: 180,
+ *   shippingAmount: 50,
+ *   discountAmount: 0,
+ *   totalAmount: 1230,
+ *   notes: "Optional delivery instructions"
+ * }
+ * 
+ * @param request - NextRequest containing order data in body
+ * @returns JSON response with created order or error message
+ */
 export async function POST(request: NextRequest) {
   try {
+    // Step 1: Parse request body to extract order data
     const body = await request.json();
     const {
-      items,
-      addressName,
-      addressPhone,
-      addressStreet,
-      addressCity,
-      addressState,
-      addressPincode,
-      deliveryDate,
-      deliverySlot,
-      paymentMethod,
-      subtotal,
-      taxAmount,
-      shippingAmount,
-      discountAmount,
-      totalAmount,
-      notes,
+      items,              // Array of cart items to order
+      addressName,        // Customer's full name
+      addressPhone,       // Customer's phone number
+      addressStreet,      // Street address
+      addressCity,        // City
+      addressState,       // State
+      addressPincode,     // Postal/ZIP code
+      deliveryDate,       // Preferred delivery date
+      deliverySlot,       // Delivery time slot (Morning/Evening)
+      paymentMethod,      // Payment method (COD/Online)
+      subtotal,           // Subtotal before tax/shipping
+      taxAmount,          // Tax amount
+      shippingAmount,     // Shipping charges
+      discountAmount,     // Discount amount (if any)
+      totalAmount,        // Final total amount
+      notes,              // Optional delivery notes
     } = body;
 
-    // Validation
+    // Step 2: Validate required fields
+    // Order must have at least one item
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: "Order must contain at least one item" },
@@ -38,6 +100,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // All address fields are required for delivery
     if (!addressName || !addressPhone || !addressStreet || !addressCity || !addressState || !addressPincode) {
       return NextResponse.json(
         { error: "All address fields are required" },
@@ -45,14 +108,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user if authenticated
+    // Step 3: Get current user (if authenticated)
+    // Guest orders are allowed (userId will be null)
     const user = await getCurrentUser();
 
-    // Generate unique order number
+    // Step 4: Generate unique order number
+    // Format: ORD-{timestamp}-{random_string}
+    // Example: ORD-1704067200000-ABC123XY
+    // This ensures each order has a unique identifier
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 
-    // Validate inventory and create order items
-    const orderItems = [];
+    // Step 5: Validate inventory and prepare order items
+    // We need to:
+    // - Verify each variant exists and is active
+    // - Check inventory is sufficient
+    // - Prepare order items array for database insertion
+    const orderItems: Array<{
+      variantId: string;
+      productId: string;
+      quantity: number;
+      price: number;
+    }> = [];
     for (const item of items) {
       // Handle both cart item format (with variantId) and direct format
       const variantId = item.variantId || item.id;
@@ -85,10 +161,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Use a transaction to ensure atomicity: create order and deduct inventory together
+    // Step 6: Use database transaction to create order and deduct inventory atomically
+    // 
+    // Why Transaction?
+    // - Atomicity: Either ALL operations succeed or ALL fail (no partial orders)
+    // - Prevents race conditions: If two users order simultaneously, only one succeeds
+    // - Data consistency: Inventory deduction and order creation happen together
+    //
+    // Example Race Condition Prevention:
+    // - User A and User B both try to order the last item
+    // - Without transaction: Both might succeed, overselling item
+    // - With transaction: Only first transaction succeeds, second fails with "insufficient inventory"
+    //
+    // Transaction Flow:
+    // 1. Verify inventory is still sufficient (might have changed since initial check)
+    // 2. Deduct inventory from each variant
+    // 3. Create order record
+    // 4. Create order items (linking products to order)
+    // 5. If any step fails, rollback all changes
     const order = await prisma.$transaction(async (tx) => {
-      // First, verify inventory is still sufficient and deduct atomically
+      // Step 6.1: Verify inventory again and deduct atomically
+      // We check again because inventory might have changed between initial check and now
+      // This is the final check before committing the order
       for (const item of orderItems) {
+        // Get current variant state (within transaction)
         const variant = await tx.variant.findUnique({
           where: { id: item.variantId },
         });
@@ -190,7 +286,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const user = await getCurrentUser();
 

@@ -44,8 +44,8 @@ A modern, production-ready e-commerce web application for **Kotaiah's Foods** - 
 
 ### State Management
 - **React Context**: Cart context for shopping cart
-- **localStorage**: Client-side data persistence
-- **Custom Hooks**: `useAdminData` for reactive admin data
+- **PostgreSQL (Neon)**: Production database for persistent data
+- **Next.js API Routes**: Backend API for all data operations
 
 ### Deployment
 - **Recommended**: Vercel (automatic deployments)
@@ -57,7 +57,7 @@ A modern, production-ready e-commerce web application for **Kotaiah's Foods** - 
 - **npm** or **yarn**: Package manager
 - **Git**: Version control
 
-> **Note**: This application uses localStorage for data persistence, so no database setup is required for basic functionality.
+> **Note**: This application uses PostgreSQL (Neon) for production data persistence. See [SETUP.md](./SETUP.md) for database configuration.
 
 ## 🚀 Quick Start
 
@@ -206,16 +206,14 @@ sweets-/
 
 ## 🔐 Data Persistence
 
-This application uses **localStorage** for client-side data persistence:
+This application uses **PostgreSQL (Neon)** for production data persistence:
 
-- **Cart**: Stored in `cart` key
-- **Orders**: Stored in `orders` key
-- **Admin Products**: Stored in `adminProducts` key
-- **Admin Categories**: Stored in `adminCategories` key
-- **Admin Promotions**: Stored in `promotions` key
-- **Admin Settings**: Stored in `adminSettings` key
+- **Database**: Neon Postgres (cloud-hosted PostgreSQL)
+- **ORM**: Prisma for type-safe database access
+- **API Routes**: Next.js API routes handle all database operations
+- **Models**: User, Product, Variant, Category, Order, CartItem, Promotion, Settings
 
-> **Note**: Data persists across browser sessions but is specific to each browser/device.
+> **Note**: All data is persisted in Neon PostgreSQL database. See [SETUP.md](./SETUP.md) for database configuration.
 
 ## 🚀 Deployment
 
@@ -256,7 +254,8 @@ This application uses **localStorage** for client-side data persistence:
 ## 📖 Documentation
 
 - **[SETUP.md](./SETUP.md)**: Detailed setup instructions
-- **[IMAGE_OPTIMIZATION_SETUP.md](./IMAGE_OPTIMIZATION_SETUP.md)**: Image optimization guide
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)**: Complete deployment guide for Vercel
+- **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)**: Comprehensive API reference
 
 ## 🐛 Bug Fixes
 

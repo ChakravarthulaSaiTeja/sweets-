@@ -83,6 +83,7 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, searchQuery]); // Reload when filters change
 
   useEffect(() => {

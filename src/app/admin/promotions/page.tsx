@@ -128,14 +128,14 @@ export default function AdminPromotions() {
     }
   };
 
-  const handleSendNotification = async (id: string) => {
+  const handleSendNotification = async (promotionId: string) => {
     if (!confirm("Send notification to all users about this promotion?"))
       return;
 
     try {
-      // In a real app, this would send notifications
+      // In a real app, this would send notifications using promotionId
       // For demo purposes, just show a success message
-      alert("Notification would be sent to all users about this promotion!");
+      alert(`Notification would be sent to all users about promotion: ${promotionId}`);
     } catch (error) {
       console.error("Error sending notification:", error);
       alert("Failed to send notification");

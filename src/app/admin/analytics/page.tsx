@@ -26,26 +26,7 @@ interface AnalyticsData {
   revenueByDay: Array<{ date: string; revenue: number }>;
 }
 
-interface OrderItem {
-  product: {
-    id: string;
-    name: string;
-    price: number;
-  };
-  quantity: number;
-}
-
-interface Order {
-  totals?: {
-    total: number;
-  };
-  customer?: {
-    email?: string;
-  };
-  createdAt: string;
-  items?: OrderItem[];
-  status?: string;
-}
+// OrderItem and Order interfaces removed - not used in this component
 
 export default function AdminAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);

@@ -1,0 +1,8 @@
+DATABASE_URL=postgresql://neondb_owner:npg_0uEjNs8KcrAC@ep-crimson-dust-a1b681f6-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+NEXTAUTH_URL=http://localhost:3000
+
+NEXTAUTH_SECRET=eyGKCj9rsCnUjeztAOPraaTthrwNYYqsDWheybX311Q=
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+

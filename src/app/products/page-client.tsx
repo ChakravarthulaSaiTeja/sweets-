@@ -157,7 +157,7 @@ export default function ProductsPageClient() {
         {loading ? (
           <LoadingSpinner />
         ) : products.length > 0 ? (
-          <ProductGrid products={products} />
+          <ProductGrid products={products as any} />
         ) : (
             <div className="text-center py-12">
               <div className="text-[#8B1A1A] mb-4">

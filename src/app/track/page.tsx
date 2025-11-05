@@ -64,6 +64,7 @@ interface Order {
     shipping: number;
     total: number;
   };
+  status?: string;
   createdAt: string;
 }
 
