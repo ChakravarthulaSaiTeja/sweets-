@@ -4,20 +4,22 @@
  * Cart Context Provider
  * 
  * Manages shopping cart state and operations using React Context API.
- * Handles cart persistence in localStorage for guest users (static export mode).
+ * Uses API routes for cart persistence (requires authentication).
  * Provides cart operations: add, remove, update quantity, and clear cart.
  * 
  * Features:
- * - localStorage persistence for guest users
+ * - API-based cart storage (requires login)
  * - Real-time cart calculations (totals, item count)
- * - Product data fetching from static data source
+ * - Shows "Please sign in" message if user not authenticated
  */
 
 import { createContext, useContext, useReducer, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 interface CartItem {
   id: string;
   productId: string;
+  variantId: string;
   quantity: number;
   product: {
     id: string;
@@ -25,6 +27,13 @@ interface CartItem {
     price: number;
     images: string[];
     slug: string;
+  };
+  variant?: {
+    id: string;
+    name: string;
+    price: number;
+    sku: string;
+    inventoryQty: number;
   };
 }
 
@@ -39,9 +48,9 @@ type CartAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_CART"; payload: CartItem[] }
   | { type: "REMOVE_ITEM"; payload: string }
-  | {
+    | {
       type: "UPDATE_QUANTITY";
-      payload: { productId: string; quantity: number };
+      payload: { variantId: string; quantity: number };
     }
   | { type: "CLEAR_CART" };
 
@@ -72,7 +81,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         0,
       );
       const totalPrice = action.payload.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
+        (sum, item) => sum + (item.variant?.price || item.product.price) * item.quantity,
         0,
       );
       return {
@@ -85,14 +94,14 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
     case "REMOVE_ITEM":
       const filteredItems = state.items.filter(
-        (item) => item.productId !== action.payload,
+        (item) => item.variantId !== action.payload,
       );
       const totalItemsAfterRemove = filteredItems.reduce(
         (sum, item) => sum + item.quantity,
         0,
       );
       const totalPriceAfterRemove = filteredItems.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
+        (sum, item) => sum + (item.variant?.price || item.product.price) * item.quantity,
         0,
       );
       return {
@@ -106,11 +115,11 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       if (action.payload.quantity <= 0) {
         return cartReducer(state, {
           type: "REMOVE_ITEM",
-          payload: action.payload.productId,
+          payload: action.payload.variantId,
         });
       }
       const updatedQuantityItems = state.items.map((item) =>
-        item.productId === action.payload.productId
+        item.variantId === action.payload.variantId
           ? { ...item, quantity: action.payload.quantity }
           : item,
       );
@@ -119,7 +128,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         0,
       );
       const totalPriceAfterUpdate = updatedQuantityItems.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
+        (sum, item) => sum + (item.variant?.price || item.product.price) * item.quantity,
         0,
       );
       return {
@@ -139,126 +148,192 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 interface CartContextType {
   state: CartState;
-  addToCart: (productId: string, quantity: number) => Promise<void>;
-  removeFromCart: (productId: string) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  addToCart: (variantId: string, quantity: number) => Promise<void>;
+  removeFromCart: (variantId: string) => Promise<void>;
+  updateQuantity: (variantId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   fetchCart: () => Promise<void>;
+  isAuthenticated: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   /**
-   * Fetches cart from localStorage and loads it into state
-   * Called on component mount to restore cart for guest users
+   * Fetches cart from API and loads it into state
+   * Called on component mount and when authenticated
    */
   const fetchCart = async () => {
-    // Load from localStorage for static export mode (guest users)
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
-        const cartItems = JSON.parse(savedCart);
-        dispatch({ type: "SET_CART", payload: cartItems });
-      } catch (error) {
-        console.error("Error loading cart from localStorage:", error);
+    if (!isAuthenticated) {
+      // Show message that login is required
+      dispatch({ type: "SET_CART", payload: [] });
+      return;
+    }
+
+    dispatch({ type: "SET_LOADING", payload: true });
+    try {
+      const response = await fetch("/api/cart");
+      if (response.ok) {
+        const data = await response.json();
+        dispatch({ type: "SET_CART", payload: data.items || [] });
+      } else if (response.status === 401) {
+        // Not authenticated
+        dispatch({ type: "SET_CART", payload: [] });
+      } else {
+        console.error("Error fetching cart:", await response.text());
       }
+    } catch (error) {
+      console.error("Error fetching cart:", error);
     }
   };
 
   /**
-   * Adds a product to the cart
-   * Fetches product details from static data and updates localStorage
-   * @param productId - Product ID or slug to add
-   * @param quantity - Quantity to add (defaults to incrementing if item exists)
+   * Adds a variant to the cart via API
+   * @param variantId - Variant ID to add
+   * @param quantity - Quantity to add
    */
-  const addToCart = async (productId: string, quantity: number) => {
-    // For static export mode, fetch product from static data
+  const addToCart = async (variantId: string, quantity: number) => {
+    if (!isAuthenticated) {
+      alert("Please sign in to add items to cart");
+      return;
+    }
+
+    dispatch({ type: "SET_LOADING", payload: true });
     try {
-      const { staticProducts } = await import("@/lib/static-data");
-      const product = staticProducts.find((p) => p.id === productId || p.slug === productId);
-      
-      if (product) {
-        const newItem = {
-          id: `guest-${productId}`,
-          productId: product.id,
-          quantity,
-          product: {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            images: product.images || [],
-            slug: product.slug,
-          },
-        };
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ variantId, quantity }),
+      });
 
-        // Load existing cart from localStorage
-        const savedCart = localStorage.getItem("cart");
-        const cartItems = savedCart ? JSON.parse(savedCart) : [];
-        const existingItemIndex = cartItems.findIndex(
-          (item: CartItem) => item.productId === product.id,
-        );
-
-        // Update quantity if item exists, otherwise add new item
-        if (existingItemIndex >= 0) {
-          cartItems[existingItemIndex].quantity += quantity;
-        } else {
-          cartItems.push(newItem);
-        }
-
-        // Persist to localStorage and update state
-        localStorage.setItem("cart", JSON.stringify(cartItems));
-        dispatch({ type: "SET_CART", payload: cartItems });
+      if (response.ok) {
+        // Refresh cart after adding
+        await fetchCart();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to add to cart (${response.status})`;
+        console.error("Cart API error:", errorMessage, response.status);
+        alert(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add item to cart";
+      alert(errorMessage);
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
   /**
-   * Removes a product from the cart
-   * @param productId - Product ID to remove
+   * Removes a variant from the cart via API
+   * @param variantId - Variant ID to remove
    */
-  const removeFromCart = async (productId: string) => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      const cartItems = JSON.parse(savedCart).filter(
-        (item: CartItem) => item.productId !== productId,
-      );
-      localStorage.setItem("cart", JSON.stringify(cartItems));
-      dispatch({ type: "SET_CART", payload: cartItems });
+  const removeFromCart = async (variantId: string) => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/cart/${variantId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Update local state immediately for better UX
+        dispatch({ type: "REMOVE_ITEM", payload: variantId });
+        // Then refresh from server
+        await fetchCart();
+      } else {
+        throw new Error("Failed to remove item");
+      }
+    } catch (error) {
+      console.error("Error removing from cart:", error);
+      alert("Failed to remove item from cart");
     }
   };
 
   /**
-   * Updates the quantity of a cart item
-   * @param productId - Product ID to update
+   * Updates the quantity of a cart item via API
+   * @param variantId - Variant ID to update
    * @param quantity - New quantity (if 0, item will be removed)
    */
-  const updateQuantity = async (productId: string, quantity: number) => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      const cartItems = JSON.parse(savedCart).map((item: CartItem) =>
-        item.productId === productId ? { ...item, quantity } : item,
-      );
-      localStorage.setItem("cart", JSON.stringify(cartItems));
-      dispatch({ type: "SET_CART", payload: cartItems });
+  const updateQuantity = async (variantId: string, quantity: number) => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (quantity <= 0) {
+      await removeFromCart(variantId);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/cart/${variantId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity }),
+      });
+
+      if (response.ok) {
+        // Update local state immediately
+        dispatch({ type: "UPDATE_QUANTITY", payload: { variantId, quantity } });
+        // Then refresh from server
+        await fetchCart();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to update quantity (${response.status})`;
+        console.error("Cart update API error:", errorMessage, response.status);
+        alert(errorMessage);
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update quantity";
+      alert(errorMessage);
     }
   };
 
   /**
-   * Clears all items from the cart
+   * Clears all items from the cart via API
    */
   const clearCart = async () => {
-    localStorage.removeItem("cart");
-    dispatch({ type: "CLEAR_CART" });
+    if (!isAuthenticated) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/cart/clear", {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        dispatch({ type: "CLEAR_CART" });
+      } else {
+        throw new Error("Failed to clear cart");
+      }
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+      alert("Failed to clear cart");
+    }
   };
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (isAuthenticated) {
+      fetchCart();
+    } else {
+      // Clear cart if not authenticated
+      dispatch({ type: "SET_CART", payload: [] });
+    }
+  }, [isAuthenticated]);
 
   return (
     <CartContext.Provider
@@ -269,6 +344,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         clearCart,
         fetchCart,
+        isAuthenticated,
       }}
     >
       {children}

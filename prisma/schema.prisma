@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("USER") // USER or ADMIN
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartItems CartItem[]
+  orders    Order[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String
+  shortDescription String?
+  // Base price - variants can override this
+  price           Float    @default(0)
+  originalPrice   Float?
+  images          String[] // Array of image URLs
+  categoryId      String
+  isVisible       Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  isBestSeller    Boolean  @default(false)
+  isFeatured      Boolean  @default(false)
+  // SEO fields
+  metaTitle       String?
+  metaDescription String?
+  averageRating   Float?
+  reviewCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  category  Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variants  Variant[]
+
+  @@map("products")
+}
+
+model Variant {
+  id            String   @id @default(cuid())
+  productId     String
+  name          String   // e.g., "500g", "1kg", "Regular"
+  price         Float    // Variant-specific price
+  sku           String   @unique
+  inventoryQty  Int      @default(0)
+  weight        String?  // e.g., "500g"
+  packSize      String?  // e.g., "1 Box"
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@map("variants")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  variantId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, variantId])
+  @@map("cart_items")
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique
+  userId        String?  // Optional for guest orders (tracked by phone)
+  status        String   @default("PENDING") // PENDING, CONFIRMED, PACKED, SHIPPED, DELIVERED
+  paymentStatus String   @default("PENDING") // PENDING, PAID, FAILED
+  paymentMethod String?  // COD, RAZORPAY, etc.
+  // Address fields stored directly in Order (no separate Address table)
+  addressName   String
+  addressPhone  String
+  addressStreet String
+  addressCity   String
+  addressState  String
+  addressPincode String
+  // Delivery info
+  deliveryDate  DateTime?
+  deliverySlot  String?
+  // Totals
+  subtotal      Float
+  taxAmount     Float    @default(0)
+  shippingAmount Float   @default(0)
+  discountAmount Float   @default(0)
+  totalAmount   Float
+  // Payment info
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  variantId String
+  productId String   // Denormalized for easier queries
+  quantity  Int
+  price     Float    // Price at time of order
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@map("order_items")
+}
+
+model Promotion {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  description   String?
+  type          String    // PERCENTAGE or FIXED_AMOUNT or FREE_SHIPPING
+  value         Float
+  minOrderValue Float?
+  maxDiscount   Float?
+  active        Boolean   @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("promotions")
+}
+
+model Settings {
+  id                  String   @id @default(cuid())
+  key                 String   @unique
+  storeName           String?
+  storeEmail          String?
+  storePhone          String?
+  storeAddress        String?
+  taxRate             Float?
+  shippingCost        Float?
+  freeShippingThreshold Float?
+  deliverySlots       String[] // Array of delivery time slots
+  currency            String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("settings")
+}
+

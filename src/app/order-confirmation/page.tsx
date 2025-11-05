@@ -10,7 +10,7 @@
  * - Payment summary (totals, payment method)
  * - Links to track order or continue shopping
  * 
- * Loads order data from localStorage using order number from URL query parameter
+ * Loads order data from API endpoint using order number from URL query parameter
  */
 
 import { useEffect, useState, Suspense } from "react";
@@ -69,11 +69,72 @@ function OrderConfirmationContent() {
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    if (orderNumber) {
-      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-      const foundOrder = orders.find((o: Order) => o.orderNumber === orderNumber);
-      setOrder(foundOrder || null);
-    }
+    const loadOrder = async () => {
+      if (orderNumber) {
+        try {
+          const response = await fetch(`/api/orders/track?orderNumber=${orderNumber}`);
+          if (response.ok) {
+            const orders = await response.json();
+            const foundOrder = orders[0]; // Get first matching order
+            
+            if (foundOrder) {
+              // Transform API order to match component format
+              const transformedOrder: Order = {
+                orderNumber: foundOrder.orderNumber,
+                items: foundOrder.orderItems.map((item: any) => ({
+                  id: item.id,
+                  productId: item.variant.product.id,
+                  quantity: item.quantity,
+                  product: {
+                    id: item.variant.product.id,
+                    name: item.variant.product.name,
+                    price: Number(item.price),
+                    images: item.variant.product.images || [],
+                    slug: item.variant.product.slug,
+                  },
+                })),
+                customer: {
+                  firstName: foundOrder.addressName?.split(" ")[0] || "",
+                  lastName: foundOrder.addressName?.split(" ").slice(1).join(" ") || "",
+                  email: foundOrder.user?.email || "",
+                  phone: foundOrder.addressPhone || "",
+                },
+                address: {
+                  street: foundOrder.addressStreet || "",
+                  city: foundOrder.addressCity || "",
+                  state: foundOrder.addressState || "",
+                  pincode: foundOrder.addressPincode || "",
+                },
+                delivery: {
+                  date: foundOrder.deliveryDate ? new Date(foundOrder.deliveryDate).toISOString().split("T")[0] : "",
+                  slot: foundOrder.deliverySlot || "",
+                },
+                payment: {
+                  method: foundOrder.paymentMethod || "COD",
+                },
+                totals: {
+                  subtotal: Number(foundOrder.subtotal) || 0,
+                  tax: Number(foundOrder.taxAmount) || 0,
+                  shipping: Number(foundOrder.shippingAmount) || 0,
+                  total: Number(foundOrder.totalAmount) || 0,
+                },
+                createdAt: foundOrder.createdAt,
+              };
+              setOrder(transformedOrder);
+            } else {
+              setOrder(null);
+            }
+          } else {
+            console.error("Failed to load order");
+            setOrder(null);
+          }
+        } catch (error) {
+          console.error("Error loading order:", error);
+          setOrder(null);
+        }
+      }
+    };
+    loadOrder();
   }, [orderNumber]);
 
   if (!order) {

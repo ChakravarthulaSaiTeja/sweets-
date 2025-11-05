@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, Phone, Sparkles, Cookie, Candy, Star, Heart, User, Lock } from "lucide-react";
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -16,24 +18,69 @@ export default function SignUpPage() {
   });
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [floatingElements, setFloatingElements] = useState<Array<{id: number; x: number; y: number; delay: number}>>([]);
 
-  // Generate floating elements for animation
-  const floatingElements = Array.from({ length: 15 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    delay: Math.random() * 3,
-  }));
+  // Generate floating elements for animation only on client side
+  useEffect(() => {
+    setFloatingElements(
+      Array.from({ length: 15 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        delay: Math.random() * 3,
+      }))
+    );
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      setError("Please agree to the terms and conditions");
+      return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate loading for demo
-    setTimeout(() => {
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: `${formData.firstName} ${formData.lastName}`.trim() || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Failed to create account");
+        setIsLoading(false);
+      } else {
+        // Account created successfully, redirect to signin
+        router.push("/auth/signin?registered=true");
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
       setIsLoading(false);
-      alert("This is a demo version. Registration is not functional.");
-    }, 2000);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,12 +313,12 @@ export default function SignUpPage() {
             )}
           </button>
 
-          {/* Demo Notice */}
-          <div className="bg-[#ffedd5] border border-[#fed7aa]  text-[#8B1A1A] rounded-xl p-4 text-center">
-            <p className="text-[#D4AF37] text-sm font-medium">
-              🎭 Demo Version - Registration is not functional
-            </p>
-          </div>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-center">
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
 
           {/* Sign In Link */}
           <div className="text-center">

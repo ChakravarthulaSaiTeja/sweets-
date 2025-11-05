@@ -1,31 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Mail, Phone, Sparkles, Cookie, Candy, Star, Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { Mail, Phone, Sparkles, Cookie, Candy, Star, Heart, Lock } from "lucide-react";
 
 export default function SignInPage() {
+  const router = useRouter();
   const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [floatingElements, setFloatingElements] = useState<Array<{id: number; x: number; y: number; delay: number}>>([]);
 
-  // Generate floating elements for animation
-  const floatingElements = Array.from({ length: 12 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    delay: Math.random() * 3,
-  }));
+  // Generate floating elements for animation only on client side
+  useEffect(() => {
+    setFloatingElements(
+      Array.from({ length: 12 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        delay: Math.random() * 3,
+      }))
+    );
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setIsLoading(true);
-    
-    // Simulate loading for demo
-    setTimeout(() => {
+
+    try {
+      const result = await signIn("credentials", {
+        email: emailOrPhone,
+        password: password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Invalid email or password");
+        setIsLoading(false);
+      } else if (result?.ok) {
+        router.push("/");
+        router.refresh();
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
       setIsLoading(false);
-      alert("This is a demo version. Authentication is not functional.");
-    }, 2000);
+    }
   };
 
   return (
@@ -138,6 +162,31 @@ export default function SignInPage() {
             />
           </div>
 
+          {/* Password Field */}
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Lock className="h-5 w-5 text-[#D4AF37] group-focus-within:text-[#8B1A1A] transition-colors duration-300" />
+            </div>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="block w-full pl-14 pr-6 py-5 border-2 border-[#fff9e6]  text-[#8B1A1A] rounded-2xl focus:ring-4 focus:ring-[#8B1A1A]/20 focus:border-[#8B1A1A] transition-all duration-300 bg-white/70 backdrop-blur-sm text-lg font-medium shadow-inner hover:shadow-lg group-focus-within:shadow-xl"
+              placeholder="Enter your password"
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-center">
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -147,22 +196,15 @@ export default function SignInPage() {
             {isLoading ? (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-3 border-white mr-4"></div>
-                <span className="text-lg">Sending Magic Link...</span>
+                <span className="text-lg">Signing in...</span>
               </div>
             ) : (
               <div className="flex items-center">
                 <Sparkles className="h-6 w-6 mr-3 animate-pulse" />
-                <span className="text-lg">Send Magic Link</span>
+                <span className="text-lg">Sign In</span>
               </div>
             )}
           </button>
-
-          {/* Demo Notice */}
-          <div className="bg-[#ffedd5] border border-[#fed7aa]  text-[#8B1A1A] rounded-xl p-4 text-center">
-            <p className="text-[#D4AF37] text-sm font-medium">
-              🎭 Demo Version - Authentication is not functional
-            </p>
-          </div>
 
           {/* Sign Up Link */}
           <div className="text-center">

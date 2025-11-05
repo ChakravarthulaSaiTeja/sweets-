@@ -14,7 +14,7 @@
  * - Delivered
  * 
  * Status is calculated based on time elapsed since order creation.
- * Loads order data from localStorage.
+ * Loads order data from API endpoint.
  */
 
 import { useState, useEffect, Suspense } from "react";
@@ -108,28 +108,79 @@ function TrackPageContent() {
 
   /**
    * Searches for order by order number or phone number
-   * Loads order from localStorage
+   * Fetches order from API
    */
-  const handleSearch = () => {
+  const handleSearch = async () => {
     setError("");
     if (!orderNumber && !phoneNumber) {
       setError("Please enter an order number or phone number");
       return;
     }
 
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    let foundOrder: Order | null = null;
+    try {
+      const params = new URLSearchParams();
+      if (orderNumber) params.append("orderNumber", orderNumber);
+      if (phoneNumber) params.append("phone", phoneNumber);
 
-    if (orderNumber) {
-      foundOrder = orders.find((o: Order) => o.orderNumber === orderNumber);
-    } else if (phoneNumber) {
-      foundOrder = orders.find((o: Order) => o.customer.phone === phoneNumber.replace(/\D/g, ""));
-    }
+      const response = await fetch(`/api/orders/track?${params.toString()}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch order");
+      }
 
-    if (foundOrder) {
-      setOrder(foundOrder);
-    } else {
-      setError("Order not found. Please check your order number or phone number.");
+      const orders = await response.json();
+      
+      if (orders && orders.length > 0) {
+        // Use the first order (most recent if multiple)
+        const foundOrder = orders[0];
+        // Transform API response to match expected format
+        setOrder({
+          orderNumber: foundOrder.orderNumber,
+          items: foundOrder.orderItems.map((item: any) => ({
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              price: item.price,
+              images: item.product.images || [],
+              slug: item.product.slug,
+            },
+            quantity: item.quantity,
+          })),
+          customer: {
+            firstName: foundOrder.addressName.split(" ")[0] || "",
+            lastName: foundOrder.addressName.split(" ").slice(1).join(" ") || "",
+            email: "",
+            phone: foundOrder.addressPhone,
+          },
+          address: {
+            street: foundOrder.addressStreet,
+            city: foundOrder.addressCity,
+            state: foundOrder.addressState,
+            pincode: foundOrder.addressPincode,
+          },
+          delivery: {
+            date: foundOrder.deliveryDate ? new Date(foundOrder.deliveryDate).toISOString().split("T")[0] : "",
+            slot: foundOrder.deliverySlot || "",
+          },
+          payment: {
+            method: foundOrder.paymentMethod || "COD",
+          },
+          totals: {
+            subtotal: foundOrder.subtotal,
+            tax: foundOrder.taxAmount,
+            shipping: foundOrder.shippingAmount,
+            total: foundOrder.totalAmount,
+          },
+          status: foundOrder.status || "PENDING",
+          createdAt: foundOrder.createdAt,
+        });
+      } else {
+        setError("Order not found. Please check your order number or phone number.");
+        setOrder(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch order");
       setOrder(null);
     }
   };

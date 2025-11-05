@@ -14,13 +14,12 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, X, Save } from "lucide-react";
 import Link from "next/link";
-import { getAllCategories } from "@/lib/static-data";
 
 interface Category {
   id: string;
   name: string;
   slug: string;
-  description: string;
+  description: string | null;
   isActive: boolean;
 }
 
@@ -34,56 +33,80 @@ export default function AdminCategories() {
     loadCategories();
   }, []);
 
-  const loadCategories = () => {
+  const loadCategories = async () => {
     try {
-      const savedCategories = localStorage.getItem("adminCategories");
-      if (savedCategories) {
-        setCategories(JSON.parse(savedCategories));
+      setLoading(true);
+      const response = await fetch("/api/admin/categories");
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
       } else {
-        // Initialize with static data
-        const staticCategories = getAllCategories();
-        const formatted = staticCategories.map((cat: { id: string; name: string; slug: string; description?: string; isActive?: boolean }) => ({
-          id: cat.id,
-          name: cat.name,
-          slug: cat.slug,
-          description: cat.description,
-          isActive: cat.isActive ?? true,
-        }));
-        setCategories(formatted);
-        localStorage.setItem("adminCategories", JSON.stringify(formatted));
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to load categories:", errorData.error);
+        alert(`Failed to load categories: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
+      alert("Failed to load categories. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const saveCategories = (updatedCategories: Category[]) => {
-    setCategories(updatedCategories);
-    localStorage.setItem("adminCategories", JSON.stringify(updatedCategories));
-    // Notify other components to refresh
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("adminDataChanged", {
-          detail: { key: "adminCategories" },
-        })
-      );
+  const handleDelete = async (categoryId: string) => {
+    if (!confirm("Are you sure you want to delete this category? This will set it as inactive.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/categories/${categoryId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await loadCategories();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to delete category (${response.status})`;
+        console.error("Category delete error:", errorMessage);
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete category";
+      alert(errorMessage);
     }
   };
 
-  const handleDelete = (categoryId: string) => {
-    if (confirm("Are you sure you want to delete this category?")) {
-      const updated = categories.filter((c) => c.id !== categoryId);
-      saveCategories(updated);
-    }
-  };
+  const handleToggleStatus = async (categoryId: string) => {
+    try {
+      const category = categories.find((c) => c.id === categoryId);
+      if (!category) {
+        alert("Category not found");
+        return;
+      }
 
-  const handleToggleStatus = (categoryId: string) => {
-    const updated = categories.map((c) =>
-      c.id === categoryId ? { ...c, isActive: !c.isActive } : c
-    );
-    saveCategories(updated);
+      const response = await fetch(`/api/admin/categories/${categoryId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isActive: !category.isActive }),
+      });
+
+      if (response.ok) {
+        await loadCategories();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to update category (${response.status})`;
+        console.error("Toggle status error:", errorMessage);
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error updating category:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update category";
+      alert(errorMessage);
+    }
   };
 
   const handleEdit = (category: Category) => {
@@ -159,7 +182,7 @@ export default function AdminCategories() {
                   {category.isActive ? "Active" : "Inactive"}
                 </button>
               </div>
-              <p className="text-sm text-[#8B1A1A] mb-4">{category.description}</p>
+              <p className="text-sm text-[#8B1A1A] mb-4">{category.description || "No description"}</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(category)}
@@ -188,28 +211,68 @@ export default function AdminCategories() {
             setShowForm(false);
             setEditingCategory(null);
           }}
-          onSave={(categoryData) => {
-            if (editingCategory) {
-              // Update existing
-              const updated = categories.map((c) =>
-                c.id === editingCategory.id ? { ...editingCategory, ...categoryData } : c
-              );
-              saveCategories(updated);
-            } else {
-              // Add new
-              if (!categoryData.name || !categoryData.description) return;
-              const slug = categoryData.name.toLowerCase().replace(/\s+/g, "-");
-              const newCategory: Category = {
-                id: `cat-${Date.now()}`,
-                name: categoryData.name,
-                slug,
-                description: categoryData.description,
-                isActive: categoryData.isActive ?? true,
-              };
-              saveCategories([...categories, newCategory]);
+          onSave={async (categoryData) => {
+            try {
+              if (editingCategory) {
+                // Update existing category
+                const response = await fetch(`/api/admin/categories/${editingCategory.id}`, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    name: categoryData.name,
+                    slug: categoryData.slug || editingCategory.slug,
+                    description: categoryData.description || null,
+                    isActive: categoryData.isActive !== undefined ? categoryData.isActive : editingCategory.isActive,
+                  }),
+                });
+
+                if (response.ok) {
+                  setShowForm(false);
+                  setEditingCategory(null);
+                  await loadCategories();
+                } else {
+                  const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+                  const errorMessage = errorData.error || `Failed to update category (${response.status})`;
+                  alert(errorMessage);
+                }
+              } else {
+                // Create new category
+                if (!categoryData.name) {
+                  alert("Category name is required");
+                  return;
+                }
+
+                const slug = categoryData.slug || categoryData.name.toLowerCase().replace(/\s+/g, "-");
+                const response = await fetch("/api/admin/categories", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    name: categoryData.name,
+                    slug,
+                    description: categoryData.description || null,
+                    isActive: categoryData.isActive !== undefined ? categoryData.isActive : true,
+                  }),
+                });
+
+                if (response.ok) {
+                  setShowForm(false);
+                  setEditingCategory(null);
+                  await loadCategories();
+                } else {
+                  const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+                  const errorMessage = errorData.error || `Failed to create category (${response.status})`;
+                  alert(errorMessage);
+                }
+              }
+            } catch (error) {
+              console.error("Error saving category:", error);
+              const errorMessage = error instanceof Error ? error.message : "Failed to save category";
+              alert(errorMessage);
             }
-            setShowForm(false);
-            setEditingCategory(null);
           }}
         />
       )}
@@ -229,15 +292,26 @@ function CategoryFormModal({
 }) {
   const [formData, setFormData] = useState({
     name: category?.name || "",
+    slug: category?.slug || "",
     description: category?.description || "",
+    isActive: category?.isActive ?? true,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.description) return;
+    if (!formData.name) {
+      alert("Category name is required");
+      return;
+    }
+
+    // Auto-generate slug if not provided
+    const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
     onSave({
       name: formData.name,
-      description: formData.description,
+      slug,
+      description: formData.description || null,
+      isActive: formData.isActive,
     });
   };
 
@@ -272,15 +346,41 @@ function CategoryFormModal({
 
           <div>
             <label className="block text-sm font-medium text-[#8B1A1A] mb-2">
-              Description *
+              Slug
+            </label>
+            <input
+              type="text"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+              placeholder="auto-generated-from-name"
+                className="w-full px-4 py-3 bg-[#FFF7EE] border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-[#8B1A1A]/20 focus:border-[#8B1A1A] text-[#8B1A1A] transition-all duration-200 hover:border-[#D4AF37] shadow-sm hover:shadow-md focus:shadow-lg"
+            />
+            <p className="text-xs text-[#8B1A1A]/70 mt-1">Leave empty to auto-generate from name</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#8B1A1A] mb-2">
+              Description
             </label>
             <textarea
-              required
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
                 className="w-full px-4 py-3 bg-[#FFF7EE] border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-[#8B1A1A]/20 focus:border-[#8B1A1A] text-[#8B1A1A] transition-all duration-200 hover:border-[#D4AF37] shadow-sm hover:shadow-md focus:shadow-lg"
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="w-4 h-4 text-[#8B1A1A] border-amber-200 rounded focus:ring-[#8B1A1A]"
+            />
+            <label htmlFor="isActive" className="text-sm font-medium text-[#8B1A1A]">
+              Active
+            </label>
           </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t border-amber-200">

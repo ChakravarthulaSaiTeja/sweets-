@@ -1,46 +1,70 @@
-# Kotaiah's Sweets & Foods - E-commerce Website
+# Kotaiah's Foods - E-commerce Website
 
-A production-ready e-commerce web application for "Kotaiah's Sweets & Foods" built with Next.js, TypeScript, and modern web technologies. This application features a clean traditional design with comprehensive e-commerce functionality including product catalog, cart management, checkout with payments, order tracking, and admin dashboard.
+A modern, production-ready e-commerce web application for **Kotaiah's Foods** - A Tradition of Sweetness Since 1900. Built with Next.js 15, TypeScript, and Tailwind CSS, featuring a beautiful traditional design with comprehensive e-commerce functionality.
 
-## 🚀 Features
+![Kotaiah's Foods](https://img.shields.io/badge/Brand-Kotaiah's%20Foods-8B1A1A)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.4-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-### Core E-commerce Features
-- **Product Catalog**: Browse products by category with filtering and search
-- **Shopping Cart**: Persistent cart for logged-in users and localStorage for guests
-- **Checkout Flow**: Address selection, delivery slot booking, and payment processing
-- **Order Management**: Track orders and manage order status
-- **User Authentication**: Email/password and magic link authentication
-- **Admin Dashboard**: Complete product, order, and content management
+## ✨ Features
 
-### Technical Features
-- **Server-Side Rendering**: SEO-optimized product pages with schema.org markup
-- **Responsive Design**: Mobile-first design with Tailwind CSS
-- **Payment Integration**: Razorpay integration with webhook verification
-- **Image Optimization**: Next.js Image component with lazy loading
-- **Performance**: Optimized for Core Web Vitals
-- **Clean Architecture**: Organized folder structure with reusable components
+### 🛒 E-commerce Features
+- **Product Catalog**: Browse products by category with search and filtering
+- **Shopping Cart**: Persistent cart with localStorage support
+- **Checkout Flow**: Complete checkout with address, delivery slots, and payment options
+- **Order Tracking**: Track orders by order number or phone number
+- **Admin Dashboard**: Complete product, order, category, and promotion management
+- **Responsive Design**: Mobile-first design that works on all devices
+
+### 🎨 Design & UX
+- **Modern UI**: Beautiful gradient backgrounds, smooth animations, and hover effects
+- **Brand Colors**: Burgundy (#8B1A1A), Gold (#D4AF37), and Amber (#FFB347) color scheme
+- **Two-Tier Navigation**: Elegant navigation with logo, auth buttons, and category links
+- **Enhanced Cards**: Animated admin dashboard cards with gradients and shadows
+- **Image Optimization**: Automatic WebP/AVIF conversion and responsive sizing
+
+### 🔧 Technical Features
+- **Static Site Generation (SSG)**: Fast page loads with pre-rendered static pages
+- **Image Optimization**: Next.js Image component with automatic optimization
+- **TypeScript**: Full type safety throughout the application
+- **Client-Side State**: localStorage-based data persistence
+- **Form Validation**: Comprehensive validation with helpful error messages
+- **Code Quality**: ESLint, TypeScript, and comprehensive code comments
 
 ## 🛠 Tech Stack
 
-- **Frontend**: Next.js 15, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: PostgreSQL
-- **Authentication**: NextAuth.js
-- **Payments**: Razorpay
-- **Deployment**: Vercel (recommended), Docker support
+### Frontend
+- **Framework**: Next.js 15.5.4 (App Router)
+- **Language**: TypeScript 5.0
+- **Styling**: Tailwind CSS 4.0
+- **UI Components**: Radix UI
+- **Icons**: Lucide React
+- **Animations**: Framer Motion, CSS animations
+
+### State Management
+- **React Context**: Cart context for shopping cart
+- **localStorage**: Client-side data persistence
+- **Custom Hooks**: `useAdminData` for reactive admin data
+
+### Deployment
+- **Recommended**: Vercel (automatic deployments)
+- **Alternative**: Docker, Netlify, or any Node.js hosting
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
-- PostgreSQL database
-- Razorpay account (for payments)
+- **Node.js**: 18.x or higher
+- **npm** or **yarn**: Package manager
+- **Git**: Version control
+
+> **Note**: This application uses localStorage for data persistence, so no database setup is required for basic functionality.
 
 ## 🚀 Quick Start
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ChakravarthulaSaiTeja/sweets-.git
 cd sweets-
 ```
 
@@ -50,51 +74,17 @@ cd sweets-
 npm install
 ```
 
-### 3. Environment Setup
+### 3. Environment Setup (Optional)
 
-Copy the environment variables template:
-
-```bash
-cp .env.example .env.local
-```
-
-Update `.env.local` with your configuration:
+Create a `.env.local` file for environment variables (only needed for advanced features):
 
 ```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/kotaiah_sweets"
-
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-nextauth-secret-key-here"
-
-# Razorpay
-RAZORPAY_KEY_ID="your-razorpay-key-id"
-RAZORPAY_SECRET="your-razorpay-secret"
-
 # App Configuration
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Kotaiah's Sweets & Foods"
+NEXT_PUBLIC_APP_NAME="Kotaiah's Foods"
 ```
 
-### 4. Database Setup
-
-Generate Prisma client and push schema to database:
-
-```bash
-npm run db:generate
-npm run db:push
-```
-
-### 5. Seed the Database
-
-Populate the database with sample data:
-
-```bash
-npm run db:seed
-```
-
-### 6. Start Development Server
+### 4. Start Development Server
 
 ```bash
 npm run dev
@@ -105,186 +95,200 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 ## 📁 Project Structure
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── auth/          # NextAuth routes
-│   │   ├── cart/          # Cart management
-│   │   ├── products/      # Product APIs
-│   │   └── promotions/    # Promotion APIs
-│   ├── admin/             # Admin dashboard
-│   ├── products/          # Product pages
-│   ├── auth/              # Authentication pages
-│   ├── cart/              # Cart page
-│   ├── contact/           # Contact page
-│   └── about/             # About page
-├── components/            # React components
-│   ├── home/              # Homepage sections
-│   ├── products/          # Product components
-│   ├── ui/                # Reusable UI components
-│   ├── navigation.tsx     # Main navigation
-│   ├── footer.tsx         # Site footer
-│   └── providers.tsx      # Context providers
-├── contexts/              # React contexts
-│   └── cart-context.tsx   # Shopping cart context
-├── lib/                   # Core utilities
-│   ├── auth.ts           # NextAuth configuration
-│   ├── prisma.ts         # Prisma client
-│   ├── analytics.ts      # Analytics utilities
-│   └── notifications.ts  # Notification utilities
-├── utils/                 # Helper functions
-│   ├── index.ts          # Main utilities
-│   ├── constants.ts      # App constants
-│   └── types.ts          # TypeScript types
-└── types/                # TypeScript type definitions
-    └── next-auth.d.ts    # NextAuth type extensions
+sweets-/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── admin/             # Admin dashboard pages
+│   │   │   ├── page.tsx       # Admin dashboard
+│   │   │   ├── products/       # Product management
+│   │   │   ├── orders/        # Order management
+│   │   │   ├── categories/    # Category management
+│   │   │   ├── promotions/    # Promotion management
+│   │   │   ├── analytics/     # Analytics dashboard
+│   │   │   └── settings/       # Admin settings
+│   │   ├── products/          # Product pages
+│   │   │   ├── page.tsx       # All products
+│   │   │   └── [slug]/        # Product detail & category pages
+│   │   ├── cart/              # Shopping cart page
+│   │   ├── checkout/          # Checkout page
+│   │   ├── track/             # Order tracking page
+│   │   ├── auth/              # Authentication pages
+│   │   └── ...                # Other pages
+│   ├── components/             # React components
+│   │   ├── home/              # Homepage sections
+│   │   ├── products/          # Product components
+│   │   ├── ui/                # Reusable UI components
+│   │   ├── navigation.tsx     # Main navigation
+│   │   ├── footer.tsx         # Site footer
+│   │   └── conditional-layout.tsx # Conditional layout wrapper
+│   ├── contexts/              # React contexts
+│   │   └── cart-context.tsx   # Shopping cart context
+│   ├── hooks/                 # Custom React hooks
+│   │   └── useAdminData.ts    # Admin data sync hook
+│   ├── lib/                   # Core utilities
+│   │   └── static-data.ts     # Static product data
+│   └── utils/                 # Helper functions
+│       ├── index.ts          # Main utilities
+│       └── types.ts          # TypeScript types
+├── public/                    # Static assets
+├── next.config.ts            # Next.js configuration
+├── tailwind.config.ts       # Tailwind CSS configuration
+└── package.json              # Dependencies
 ```
 
 ## 🔧 Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:push` - Push schema to database
-- `npm run db:seed` - Seed database with sample data
-- `npm run db:studio` - Open Prisma Studio
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server with Turbopack |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run clean` | Remove `.next` and `node_modules` |
+| `npm run rebuild` | Clean, install, and build |
 
 ## 🎨 Design System
 
-### Theme Colors
-- **Cream**: #FFF7EE (Background)
-- **Maroon**: #7B1E2D (Primary)
-- **Saffron**: #F39C12 (Accent)
-- **Chili**: #B71C1C (Error/Danger)
-- **Gold**: #C79A2A (Secondary)
-- **Cardamom**: #2F6F4A (Success)
+### Color Palette
+
+- **Burgundy (Primary)**: `#8B1A1A` - Main brand color
+- **Gold (Accent)**: `#D4AF37` - Accent color for highlights
+- **Amber (Secondary)**: `#FFB347` - Secondary accent
+- **Cream (Background)**: `#FFF7EE` - Main background color
 
 ### Typography
+
 - **Headings**: Playfair Display (Serif)
 - **Body**: Inter (Sans-serif)
 
 ### Components
-- Custom button styles (btn-primary, btn-secondary, btn-outline)
-- Card components with hover effects
-- Form input styles
+
+- Custom button styles with gradients and hover effects
+- Animated cards with shadows and transitions
+- Form inputs with consistent styling
 - Responsive grid layouts
 
 ## 🛒 E-commerce Features
 
 ### Product Management
-- Product catalog with categories (Sweets, Hot Snacks, Pickles, Powders, Gift Boxes)
-- Product variants and inventory management
-- Product images with optimization
-- SEO-friendly product pages
+- Product catalog with categories (Hot Snacks, Pickles, Powders, Gift Boxes)
+- Product detail pages with images, descriptions, and reviews
+- Product visibility control (admin can hide/show products)
+- Inventory management
 
 ### Shopping Cart
-- Persistent cart for logged-in users
-- localStorage cart for guests
+- Persistent cart using localStorage
 - Real-time cart updates
-- Cart item quantity management
+- Quantity management
+- Add to cart notifications
 
 ### Checkout Process
-1. **Address Selection**: Delivery and billing addresses
-2. **Payment**: Razorpay integration with multiple payment methods
-3. **Order Confirmation**: Email notifications
+1. **Customer Information**: Name, email, phone
+2. **Delivery Address**: Full address with validation
+3. **Delivery Date & Slot**: Date picker and time slot selection
+4. **Payment Method**: COD or Online payment
+5. **Order Confirmation**: Order summary and confirmation
 
-### Order Management
-- Order tracking with status updates
-- Order history for customers
-- Admin order management
+### Order Tracking
+- Track by order number
+- Track by phone number (normalized for matching)
+- Order status timeline
+- Delivery information display
 
-## 🔐 Authentication
+### Admin Panel
+- **Dashboard**: Overview with stats and quick navigation
+- **Products**: Create, edit, delete, and manage product visibility
+- **Orders**: View and manage customer orders
+- **Categories**: Manage product categories
+- **Promotions**: Create and manage promotional campaigns
+- **Analytics**: Sales and performance metrics
+- **Settings**: Store configuration and currency settings
 
-### User Roles
-- **Customer**: Browse, order, track orders
-- **Admin**: Manage products, orders, content
+## 🔐 Data Persistence
 
-### Authentication Methods
-- Email/password login
-- Magic link authentication
+This application uses **localStorage** for client-side data persistence:
 
-## 💳 Payment Integration
+- **Cart**: Stored in `cart` key
+- **Orders**: Stored in `orders` key
+- **Admin Products**: Stored in `adminProducts` key
+- **Admin Categories**: Stored in `adminCategories` key
+- **Admin Promotions**: Stored in `promotions` key
+- **Admin Settings**: Stored in `adminSettings` key
 
-### Razorpay Integration
-- Order creation API
-- Payment verification webhooks
-- Multiple payment methods:
-  - UPI
-  - Credit/Debit Cards
-  - Net Banking
-  - Wallets
-  - Cash on Delivery (COD)
+> **Note**: Data persists across browser sessions but is specific to each browser/device.
 
 ## 🚀 Deployment
 
-### Vercel Deployment (Recommended)
+### Vercel (Recommended)
 
 1. **Connect Repository**
    ```bash
-   # Install Vercel CLI
    npm i -g vercel
-   
-   # Deploy
    vercel
    ```
 
 2. **Environment Variables**
-   - Add all environment variables in Vercel dashboard
-   - Set `NEXTAUTH_URL` to your production domain
+   - Add `NEXT_PUBLIC_APP_URL` in Vercel dashboard
+   - Set to your production domain
 
-3. **Database**
-   - Use Vercel Postgres or external PostgreSQL
-   - Run migrations: `npm run db:push`
+3. **Automatic Deployments**
+   - Vercel automatically deploys on every push to `main` branch
 
-### Docker Deployment
+### Docker
 
 1. **Build Image**
    ```bash
-   docker build -t kotaiah-sweets .
+   docker build -t kotaiah-foods .
    ```
 
 2. **Run Container**
    ```bash
-   docker run -p 3000:3000 --env-file .env kotaiah-sweets
+   docker run -p 3000:3000 --env-file .env.local kotaiah-foods
    ```
+
+### Other Platforms
+
+- **Netlify**: Use Next.js plugin
+- **AWS Amplify**: Connect GitHub repository
+- **Railway**: Deploy with Node.js preset
+- **Render**: Use Node.js service
+
+## 📖 Documentation
+
+- **[SETUP.md](./SETUP.md)**: Detailed setup instructions
+- **[IMAGE_OPTIMIZATION_SETUP.md](./IMAGE_OPTIMIZATION_SETUP.md)**: Image optimization guide
+
+## 🐛 Bug Fixes
+
+### Phone Number Normalization
+- **Fixed**: Phone numbers are now normalized (non-digits removed) when storing orders
+- **Fixed**: Order tracking normalizes both stored and input phone numbers for consistent matching
+- **Result**: Users can search with formatted phone numbers (e.g., "98-76-54-3210") and still find orders
 
 ## 🔧 Configuration
 
-### Production Keys Setup
+### Image Optimization
 
-1. **Razorpay**
-   - Switch from test to live keys
-   - Update webhook URLs
-   - Configure payment methods
+The project uses Next.js Image optimization with:
+- Automatic WebP/AVIF conversion
+- Responsive image sizing
+- Remote image patterns configured
+- See `IMAGE_OPTIMIZATION_SETUP.md` for details
 
-2. **Database**
-   - Use production PostgreSQL instance
-   - Configure connection pooling
-   - Set up backups
+### Admin Panel
 
-## 📊 Monitoring & Maintenance
-
-### Performance Monitoring
-- Core Web Vitals tracking
-- Database query optimization
-- Image optimization
-- CDN configuration
-
-### Security
-- Rate limiting on APIs
-- Input validation and sanitization
-- Secure environment variables
-- HTTPS enforcement
+Access the admin panel at `/admin`:
+- Manage products, orders, categories, and promotions
+- View analytics and configure settings
+- All changes sync in real-time via localStorage
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
@@ -293,18 +297,19 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🆘 Support
 
 For support and questions:
-- Email: support@kotaiahsweets.com
-- Documentation: [Link to documentation]
-- Issues: [GitHub Issues]
+- **Email**: info@kotaiahsweets.com
+- **GitHub Issues**: [Open an issue](https://github.com/ChakravarthulaSaiTeja/sweets-/issues)
 
 ## 🙏 Acknowledgments
 
 - Next.js team for the amazing framework
-- Prisma team for the excellent ORM
 - Tailwind CSS for the utility-first CSS framework
+- Radix UI for accessible component primitives
+- Lucide for beautiful icons
 - All open-source contributors
 
 ---
 
-**Kotaiah's Sweets & Foods** - A Tradition of Sweetness Since 1900
+**Kotaiah's Foods** - A Tradition of Sweetness Since 1900
 
+Made with ❤️ using Next.js and TypeScript

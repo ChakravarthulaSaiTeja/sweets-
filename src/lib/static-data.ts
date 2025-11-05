@@ -463,27 +463,12 @@ export function getProductBySlug(slug: string) {
 
 /**
  * Get all available products
- * Checks localStorage for admin-edited products first, then falls back to static data
- * @returns Array of all products
+ * DEPRECATED: This function is no longer used. Products are now fetched from API endpoints.
+ * @deprecated Use API endpoints instead: GET /api/products
+ * @returns Array of all products (legacy static data)
  */
 export function getAllProducts() {
-  if (typeof window !== "undefined") {
-    try {
-      const adminProducts = localStorage.getItem("adminProducts");
-      if (adminProducts) {
-        const parsed = JSON.parse(adminProducts);
-        // Ensure all products default to visible if not set
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return parsed.map((p: any) => ({
-          ...p,
-          isVisible: p.isVisible !== undefined ? p.isVisible : true, // Default to visible
-        }));
-      }
-    } catch (error) {
-      console.error("Error loading admin products:", error);
-    }
-  }
-  // Return static products with default visibility
+  // Return static products with default visibility (legacy fallback)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return staticProducts.map((p: any) => ({
     ...p,
@@ -493,19 +478,10 @@ export function getAllProducts() {
 
 /**
  * Get all product categories
- * Checks localStorage for admin-edited categories first, then falls back to static data
- * @returns Array of all categories
+ * DEPRECATED: This function is no longer used. Categories are now fetched from API endpoints.
+ * @deprecated Use API endpoints instead: GET /api/categories
+ * @returns Array of all categories (legacy static data)
  */
 export function getAllCategories() {
-  if (typeof window !== "undefined") {
-    try {
-      const adminCategories = localStorage.getItem("adminCategories");
-      if (adminCategories) {
-        return JSON.parse(adminCategories);
-      }
-    } catch (error) {
-      console.error("Error loading admin categories:", error);
-    }
-  }
   return staticCategories;
 }

@@ -12,8 +12,7 @@ import Image from "next/image";
 import { Star, ShoppingCart, ArrowRight } from "lucide-react";
 import { formatPrice } from "@/utils";
 import { useCart } from "@/contexts/cart-context";
-import { getAllProducts } from "@/lib/static-data";
-import { useAdminData } from "@/hooks/useAdminData";
+import { useEffect, useState } from "react";
 
 interface Product {
   id: string;
@@ -31,6 +30,12 @@ interface Product {
   };
   averageRating: number;
   reviewCount: number;
+  variants?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    inventoryQty: number;
+  }>;
 }
 
 /**
@@ -49,7 +54,11 @@ function ProductCard({ product }: { product: Product }) {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await addToCart(product.id, 1);
+      // Use first variant if available, otherwise use product ID (legacy support)
+      const variantId = product.variants && product.variants.length > 0 
+        ? product.variants[0].id 
+        : product.id;
+      await addToCart(variantId, 1);
       // Show success feedback with enhanced styling
       const notification = document.createElement('div');
       notification.innerHTML = `
@@ -154,14 +163,23 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 export function FeaturedProducts() {
-  // Watch for admin changes
-  const allProducts = useAdminData("adminProducts", getAllProducts(), getAllProducts);
-  interface ProductFilter {
-    isFeatured?: boolean;
-    isActive?: boolean;
-    isVisible?: boolean;
-  }
-  const featuredProducts = allProducts.filter((p: ProductFilter) => p.isFeatured && p.isActive !== false && p.isVisible !== false);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    async function loadFeaturedProducts() {
+      try {
+        const response = await fetch("/api/products?featured=true");
+        if (response.ok) {
+          const data = await response.json();
+          setFeaturedProducts(data.products || []);
+        }
+      } catch (error) {
+        console.error("Error loading featured products:", error);
+      }
+    }
+
+    loadFeaturedProducts();
+  }, []);
 
   return (
     <section className="py-16 bg-[#FFF7EE]">

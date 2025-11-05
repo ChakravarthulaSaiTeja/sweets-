@@ -86,7 +86,7 @@ export default function CheckoutPage() {
 
   /**
    * Handles form submission and order creation
-   * Creates order object, saves to localStorage, clears cart, and redirects to confirmation
+   * Creates order object via API, clears cart, and redirects to confirmation
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,49 +101,142 @@ export default function CheckoutPage() {
     const shipping = subtotal > 500 ? 0 : 50;
     const total = subtotal + tax + shipping;
 
-    // Create order
-    const order = {
-      orderNumber: `KF${Date.now()}`,
+    // Prepare order data for API
+    const orderData = {
       items: state?.items || [],
-      customer: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-      },
-      address: {
-        street: formData.address,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode,
-      },
-      delivery: {
-        date: formData.deliveryDate,
-        slot: formData.deliverySlot,
-      },
-      payment: {
-        method: formData.paymentMethod,
-      },
-      totals: {
-        subtotal,
-        tax,
-        shipping,
-        total,
-      },
-      notes: formData.notes,
-      createdAt: new Date().toISOString(),
+      addressName: `${formData.firstName} ${formData.lastName}`.trim(),
+      addressPhone: (formData.phone || "").replace(/\D/g, ""), // Normalize phone number
+      addressStreet: formData.address,
+      addressCity: formData.city,
+      addressState: formData.state,
+      addressPincode: formData.pincode,
+      deliveryDate: formData.deliveryDate,
+      deliverySlot: formData.deliverySlot,
+      paymentMethod: formData.paymentMethod === "cod" ? "COD" : "RAZORPAY",
+      subtotal,
+      taxAmount: tax,
+      shippingAmount: shipping,
+      discountAmount: 0,
+      totalAmount: total,
+      notes: formData.notes || null,
     };
 
-    // Save order to localStorage
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    orders.push(order);
-    localStorage.setItem("orders", JSON.stringify(orders));
+    try {
+      // Create order via API
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderData),
+      });
 
-    // Clear cart
-    await clearCart();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create order");
+      }
 
-    // Redirect to order confirmation
-    router.push(`/order-confirmation?orderNumber=${order.orderNumber}`);
+      const order = await response.json();
+
+      // Clear cart
+      await clearCart();
+
+      // If payment method is online, initiate Razorpay payment
+      if (formData.paymentMethod === "online") {
+        try {
+          // Create Razorpay order
+          const paymentResponse = await fetch("/api/payments/create-order", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ orderId: order.id }),
+          });
+
+          if (!paymentResponse.ok) {
+            throw new Error("Failed to create payment order");
+          }
+
+          const paymentData = await paymentResponse.json();
+
+          // Load Razorpay script dynamically
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => {
+            // Initialize Razorpay checkout
+            const options = {
+              key: paymentData.key,
+              amount: paymentData.amount,
+              currency: paymentData.currency,
+              order_id: paymentData.orderId,
+              name: "Kotaiah's Sweets & Foods",
+              description: `Order ${order.orderNumber}`,
+              handler: async function (response: {
+                razorpay_payment_id: string;
+                razorpay_order_id: string;
+                razorpay_signature: string;
+              }) {
+                // Verify payment
+                try {
+                  const verifyResponse = await fetch("/api/payments/verify", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_signature: response.razorpay_signature,
+                    }),
+                  });
+
+                  if (verifyResponse.ok) {
+                    // Payment verified, redirect to confirmation
+                    router.push(`/order-confirmation?orderNumber=${order.orderNumber}`);
+                  } else {
+                    throw new Error("Payment verification failed");
+                  }
+                } catch (error) {
+                  console.error("Payment verification error:", error);
+                  alert("Payment verification failed. Please contact support.");
+                }
+              },
+              prefill: {
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                contact: formData.phone,
+              },
+              theme: {
+                color: "#8B1A1A",
+              },
+              modal: {
+                ondismiss: function () {
+                  // User closed the payment modal
+                  alert("Payment cancelled. Your order has been created but payment is pending.");
+                  router.push(`/order-confirmation?orderNumber=${order.orderNumber}`);
+                },
+              },
+            };
+
+            const razorpay = new (window as any).Razorpay(options);
+            razorpay.open();
+          };
+          script.onerror = () => {
+            alert("Failed to load payment gateway. Please try again.");
+          };
+          document.body.appendChild(script);
+        } catch (error) {
+          console.error("Error initiating payment:", error);
+          alert("Failed to initiate payment. Please try again.");
+        }
+      } else {
+        // Redirect to order confirmation for COD
+        router.push(`/order-confirmation?orderNumber=${order.orderNumber}`);
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      alert(error instanceof Error ? error.message : "Failed to create order. Please try again.");
+    }
   };
 
   if (!state?.items || state.items.length === 0) {

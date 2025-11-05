@@ -4,7 +4,7 @@
  * ProductGrid Component
  * 
  * Displays a responsive grid of product cards with images, pricing, and add-to-cart functionality.
- * Features include discount badges, stock status, and quick action buttons.
+ * Features include discount badges, stock status, variant selection dropdown, and quick action buttons.
  * 
  * @param products - Array of product objects to display in the grid
  */
@@ -14,6 +14,15 @@ import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/utils";
 import { useCart } from "@/contexts/cart-context";
+import { useState, useEffect } from "react";
+
+interface Variant {
+  id: string;
+  name: string;
+  price: number;
+  inventoryQty: number;
+  weight: string | null;
+}
 
 interface Product {
   id: string;
@@ -31,6 +40,7 @@ interface Product {
     name: string;
     slug: string;
   };
+  variants?: Variant[];
 }
 
 interface ProductGridProps {
@@ -39,6 +49,22 @@ interface ProductGridProps {
 
 export function ProductGrid({ products }: ProductGridProps) {
   const { addToCart } = useCart();
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+
+  // Initialize selected variants on mount
+  useEffect(() => {
+    const initial: Record<string, string> = {};
+    products.forEach((product) => {
+      if (product.variants && product.variants.length > 0) {
+        initial[product.id] = product.variants[0].id;
+      }
+    });
+    setSelectedVariants(prev => {
+      // Only update if there are new products
+      const hasChanges = Object.keys(initial).some(id => prev[id] !== initial[id]);
+      return hasChanges ? { ...prev, ...initial } : prev;
+    });
+  }, [products]);
 
   /**
    * Calculates the discount percentage between original and current price
@@ -56,11 +82,17 @@ export function ProductGrid({ products }: ProductGridProps) {
   /**
    * Handles adding a product to the shopping cart
    * @param productId - The unique identifier of the product
+   * @param variantId - The unique identifier of the selected variant
    * @param productName - The name of the product (for user feedback)
    */
-  const handleAddToCart = async (productId: string, productName: string) => {
+  const handleAddToCart = async (productId: string, variantId: string | null, productName: string) => {
+    if (!variantId) {
+      alert("Please select a weight/quantity option");
+      return;
+    }
+
     try {
-      await addToCart(productId, 1);
+      await addToCart(variantId, 1);
       // Show success feedback with enhanced styling
       const notification = document.createElement('div');
       notification.innerHTML = `
@@ -110,10 +142,49 @@ export function ProductGrid({ products }: ProductGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {products.map((product) => {
+        // Get variants or use fallback
+        let variants = product.variants && product.variants.length > 0 
+          ? product.variants 
+          : [{ id: product.id, name: "Default", price: product.price, inventoryQty: product.inventoryQty, weight: null }];
+        
+        // Sort variants by weight/quantity in ascending order
+        variants = [...variants].sort((a, b) => {
+          // Extract numeric value from weight/name (e.g., "500g" -> 500, "1kg" -> 1000)
+          const getWeightValue = (text: string | null): number => {
+            if (!text) return 0;
+            const match = text.match(/(\d+(?:\.\d+)?)\s*(g|kg|G|KG)/i);
+            if (match) {
+              const value = parseFloat(match[1]);
+              const unit = match[2].toLowerCase();
+              return unit === 'kg' ? value * 1000 : value;
+            }
+            return 0;
+          };
+          
+          // Try weight first, then name
+          const weightA = getWeightValue(a.weight) || getWeightValue(a.name);
+          const weightB = getWeightValue(b.weight) || getWeightValue(b.name);
+          
+          // If weights are equal, sort by price
+          if (weightA === weightB) {
+            return a.price - b.price;
+          }
+          
+          return weightA - weightB;
+        });
+        
+        // Get selected variant or default to first variant
+        const selectedVariantId = selectedVariants[product.id] || variants[0]?.id || null;
+        const selectedVariant = variants.find(v => v.id === selectedVariantId) || variants[0];
+        
+        // Calculate display price and inventory from selected variant
+        const displayPrice = selectedVariant?.price || product.price;
+        const displayInventory = selectedVariant?.inventoryQty || product.inventoryQty;
+        
         const hasDiscount =
-          product.originalPrice && product.originalPrice > product.price;
-        const discountPercentage = hasDiscount
-          ? getDiscountPercentage(product.originalPrice!, product.price)
+          product.originalPrice && product.originalPrice > displayPrice;
+        const discountPercentage = hasDiscount && product.originalPrice
+          ? getDiscountPercentage(product.originalPrice, displayPrice)
           : 0;
 
         return (
@@ -129,7 +200,7 @@ export function ProductGrid({ products }: ProductGridProps) {
                   alt={product.name}
                   fill
                   className={`object-cover transition-transform duration-300 ${
-                    product.inventoryQty > 0 ? 'group-hover:scale-105' : ''
+                    displayInventory > 0 ? 'group-hover:scale-105' : ''
                   }`}
                 />
               </Link>
@@ -151,20 +222,6 @@ export function ProductGrid({ products }: ProductGridProps) {
                     {discountPercentage}% OFF
                   </span>
                 )}
-              </div>
-
-              {/* Quick Actions - Add to Cart Button */}
-              <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <button 
-                  onClick={() => product.inventoryQty > 0 && handleAddToCart(product.id, product.name)}
-                  disabled={product.inventoryQty === 0}
-                  className={`p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm transition-colors ${
-                    product.inventoryQty > 0 ? 'hover:bg-white' : 'opacity-50 cursor-not-allowed'
-                  }`}
-                  aria-label={`Add ${product.name} to cart`}
-                >
-                  <ShoppingCart className="h-4 w-4 text-[#8B1A1A]" />
-                </button>
               </div>
             </div>
 
@@ -189,10 +246,45 @@ export function ProductGrid({ products }: ProductGridProps) {
                 </p>
               )}
 
+              {/* Variant Selector Dropdown */}
+              {variants.length > 1 && (
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-[#8B1A1A] mb-2">
+                    Select Quantity:
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedVariantId || ""}
+                      onChange={(e) => {
+                        setSelectedVariants(prev => ({ ...prev, [product.id]: e.target.value }));
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-4 py-2.5 pr-10 text-sm font-medium bg-white border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-[#8B1A1A]/20 focus:border-[#8B1A1A] text-[#8B1A1A] transition-all duration-200 hover:border-[#D4AF37] shadow-sm cursor-pointer appearance-none"
+                    >
+                      {variants.map((variant) => (
+                        <option
+                          key={variant.id}
+                          value={variant.id}
+                          disabled={variant.inventoryQty === 0}
+                        >
+                          {variant.name} - {formatPrice(variant.price)}
+                          {variant.inventoryQty === 0 ? " (Out of Stock)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-[#8B1A1A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Price */}
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg font-bold text-[#8B1A1A]">
-                  {formatPrice(product.price)}
+                  {formatPrice(displayPrice)}
                 </span>
                 {hasDiscount && (
                   <span className="text-sm text-[#8B1A1A] line-through">
@@ -201,11 +293,11 @@ export function ProductGrid({ products }: ProductGridProps) {
                 )}
               </div>
 
-              {/* Stock Status */}
-              <div className="flex items-center justify-between">
+              {/* Stock Status and Add to Cart */}
+              <div className="space-y-2">
                 <div className="text-xs text-[#8B1A1A]">
-                  {product.inventoryQty > 0 ? (
-                    <span className="text-[#8B1A1A]">In Stock</span>
+                  {displayInventory > 0 ? (
+                    <span className="text-[#8B1A1A]">{displayInventory} in stock</span>
                   ) : (
                     <span className="text-[#FFB347]">Out of Stock</span>
                   )}
@@ -213,15 +305,20 @@ export function ProductGrid({ products }: ProductGridProps) {
 
                 {/* Add to Cart Button */}
                 <button
-                  onClick={() => product.inventoryQty > 0 && handleAddToCart(product.id, product.name)}
-                  disabled={product.inventoryQty === 0}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    product.inventoryQty > 0
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (displayInventory > 0 && selectedVariantId) {
+                      handleAddToCart(product.id, selectedVariantId, product.name);
+                    }
+                  }}
+                  disabled={displayInventory === 0 || !selectedVariantId}
+                  className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    displayInventory > 0 && selectedVariantId
                       ? "bg-[#8B1A1A] text-white hover:bg-[#D4AF37] hover:text-[#8B1A1A]"
                       : "bg-[#FFF7EE] text-[#8B1A1A] cursor-not-allowed"
                   }`}
                 >
-                  {product.inventoryQty > 0 ? "Add to Cart" : "Out of Stock"}
+                  {displayInventory > 0 ? "Add to Cart" : "Out of Stock"}
                 </button>
               </div>
             </div>

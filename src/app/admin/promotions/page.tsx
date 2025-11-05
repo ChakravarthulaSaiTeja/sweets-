@@ -44,15 +44,36 @@ export default function AdminPromotions() {
 
   const fetchPromotions = async () => {
     try {
-      // Load from localStorage instead of API
-      const savedPromotions = localStorage.getItem("promotions");
-      if (savedPromotions) {
-        setPromotions(JSON.parse(savedPromotions));
+      setLoading(true);
+      const response = await fetch("/api/admin/promotions");
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API data to match component structure
+        const transformedPromotions = data.map((promo: any) => ({
+          id: promo.id,
+          name: promo.code || promo.name || "Promotion",
+          type: promo.type || "PERCENTAGE",
+          value: promo.value || 0,
+          minOrder: promo.minOrderValue || 0,
+          couponCode: promo.code || "",
+          maxUses: promo.maxUses || 0,
+          userLimit: promo.userLimit || 0,
+          startAt: promo.createdAt || new Date().toISOString(),
+          endAt: promo.expiresAt || null,
+          combinable: promo.combinable || false,
+          active: promo.active !== undefined ? promo.active : true,
+          createdAt: promo.createdAt || new Date().toISOString(),
+        }));
+        setPromotions(transformedPromotions);
       } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to load promotions:", errorData.error);
+        alert(`Failed to load promotions: ${errorData.error || "Unknown error"}`);
         setPromotions([]);
       }
     } catch (error) {
       console.error("Error fetching promotions:", error);
+      alert("Failed to load promotions. Please try again.");
       setPromotions([]);
     } finally {
       setLoading(false);
@@ -63,27 +84,47 @@ export default function AdminPromotions() {
     if (!confirm("Are you sure you want to delete this promotion?")) return;
 
     try {
-      // Delete from localStorage
-      const savedPromotions = JSON.parse(localStorage.getItem("promotions") || "[]");
-      const updated = savedPromotions.filter((p: Promotion) => p.id !== id);
-      localStorage.setItem("promotions", JSON.stringify(updated));
-      setPromotions(updated);
+      const response = await fetch(`/api/admin/promotions/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await fetchPromotions();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to delete promotion (${response.status})`;
+        console.error("Promotion delete error:", errorMessage);
+        alert(errorMessage);
+      }
     } catch (error) {
       console.error("Error deleting promotion:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete promotion";
+      alert(errorMessage);
     }
   };
 
   const handleToggleActive = async (id: string, active: boolean) => {
     try {
-      // Update in localStorage
-      const savedPromotions = JSON.parse(localStorage.getItem("promotions") || "[]");
-      const updated = savedPromotions.map((p: Promotion) =>
-        p.id === id ? { ...p, active: !active } : p
-      );
-      localStorage.setItem("promotions", JSON.stringify(updated));
-      setPromotions(updated);
+      const response = await fetch(`/api/admin/promotions/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ active: !active }),
+      });
+
+      if (response.ok) {
+        await fetchPromotions();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to update promotion (${response.status})`;
+        console.error("Toggle promotion error:", errorMessage);
+        alert(errorMessage);
+      }
     } catch (error) {
       console.error("Error toggling promotion:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update promotion";
+      alert(errorMessage);
     }
   };
 
@@ -432,29 +473,61 @@ function PromotionFormInline({
     setLoading(true);
 
     try {
-      // Save to localStorage instead of API
-      const promotions = JSON.parse(localStorage.getItem("promotions") || "[]");
-      
       if (promotion) {
-        // Update existing
-        const updated = promotions.map((p: Promotion) =>
-          p.id === promotion.id ? { ...promotion, ...formData } : p
-        );
-        localStorage.setItem("promotions", JSON.stringify(updated));
+        // Update existing promotion
+        const response = await fetch(`/api/admin/promotions/${promotion.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: formData.couponCode || promotion.couponCode,
+            type: formData.type,
+            value: Number(formData.value),
+            minOrderValue: formData.minOrder ? Number(formData.minOrder) : null,
+            maxDiscount: null,
+            active: formData.active,
+            expiresAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
+          }),
+        });
+
+        if (response.ok) {
+          onSuccess();
+        } else {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          const errorMessage = errorData.error || `Failed to update promotion (${response.status})`;
+          alert(errorMessage);
+        }
       } else {
-        // Create new
-        const newPromotion: Promotion = {
-          id: `PROMO${Date.now()}`,
-          ...formData,
-          createdAt: new Date().toISOString(),
-        };
-        localStorage.setItem("promotions", JSON.stringify([...promotions, newPromotion]));
+        // Create new promotion
+        const response = await fetch("/api/admin/promotions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: formData.couponCode || generateCouponCode(),
+            type: formData.type,
+            value: Number(formData.value),
+            minOrderValue: formData.minOrder ? Number(formData.minOrder) : null,
+            maxDiscount: null,
+            active: formData.active,
+            expiresAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
+          }),
+        });
+
+        if (response.ok) {
+          onSuccess();
+        } else {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          const errorMessage = errorData.error || `Failed to create promotion (${response.status})`;
+          alert(errorMessage);
+        }
       }
-      
-      onSuccess();
     } catch (error) {
       console.error("Error saving promotion:", error);
-      alert("Failed to save promotion");
+      const errorMessage = error instanceof Error ? error.message : "Failed to save promotion";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

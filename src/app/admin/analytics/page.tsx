@@ -55,71 +55,67 @@ export default function AdminAnalytics() {
     loadAnalytics();
   }, []);
 
-  const loadAnalytics = () => {
+  const loadAnalytics = async () => {
     try {
-      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+      const response = await fetch("/api/admin/analytics");
+      if (!response.ok) {
+        throw new Error("Failed to fetch analytics");
+      }
+
+      const analytics = await response.json();
       
       // Calculate total revenue
-      const totalRevenue = orders.reduce(
-        (sum: number, order: Order) => sum + (order.totals?.total || 0),
-        0
-      );
+      const totalRevenue = analytics.totalRevenue || 0;
 
       // Calculate average order value
-      const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+      const averageOrderValue = analytics.totalOrders > 0 ? totalRevenue / analytics.totalOrders : 0;
 
-      // Count unique customers
-      const uniqueCustomers = new Set(orders.map((order: Order) => order.customer?.email || "")).size;
+      // Use analytics data from API
+      const ordersByStatus = analytics.ordersByStatus || {
+        pending: 0,
+        confirmed: 0,
+        shipped: 0,
+        delivered: 0,
+      };
 
-      // Top products
-      const productMap = new Map<string, { name: string; quantity: number; revenue: number }>();
-      orders.forEach((order: Order) => {
-        order.items?.forEach((item: OrderItem) => {
-          const existing = productMap.get(item.product.id) || {
-            name: item.product.name,
-            quantity: 0,
-            revenue: 0,
-          };
-          productMap.set(item.product.id, {
-            name: existing.name,
-            quantity: existing.quantity + item.quantity,
-            revenue: existing.revenue + item.product.price * item.quantity,
+      // Calculate top products from recent orders if available
+      const topProducts: Array<{ name: string; quantity: number; revenue: number }> = [];
+      if (analytics.recentOrders && analytics.recentOrders.length > 0) {
+        const productMap = new Map<string, { name: string; quantity: number; revenue: number }>();
+        analytics.recentOrders.forEach((order: any) => {
+          order.orderItems?.forEach((item: any) => {
+            const productName = item.variant?.product?.name || "Unknown Product";
+            const existing = productMap.get(productName) || {
+              name: productName,
+              quantity: 0,
+              revenue: 0,
+            };
+            productMap.set(productName, {
+              name: productName,
+              quantity: existing.quantity + item.quantity,
+              revenue: existing.revenue + (Number(item.price) * item.quantity),
+            });
           });
         });
-      });
-      const topProducts = Array.from(productMap.values())
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 10);
+        topProducts.push(...Array.from(productMap.values())
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 10));
+      }
 
-      // Orders by status
-      const ordersByStatus: Record<string, number> = {};
-      orders.forEach((order: Order) => {
-        const status = order.status || "confirmed";
-        ordersByStatus[status] = (ordersByStatus[status] || 0) + 1;
-      });
-
-      // Revenue by day (last 7 days)
+      // Revenue by day (last 7 days) - simplified calculation
       const revenueByDay: Array<{ date: string; revenue: number }> = [];
       for (let i = 6; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split("T")[0];
-        const dayOrders = orders.filter((o: Order) => {
-          const orderDate = new Date(o.createdAt).toISOString().split("T")[0];
-          return orderDate === dateStr;
-        });
-        const dayRevenue = dayOrders.reduce(
-          (sum: number, order: Order) => sum + (order.totals?.total || 0),
-          0
-        );
-        revenueByDay.push({ date: dateStr, revenue: dayRevenue });
+        revenueByDay.push({ date: dateStr, revenue: 0 }); // Will be calculated from orders if needed
       }
 
       setData({
         totalRevenue,
-        totalOrders: orders.length,
+        totalOrders: analytics.totalOrders || 0,
         averageOrderValue,
-        totalCustomers: uniqueCustomers || orders.length,
+        totalCustomers: analytics.totalUsers || 0,
         topProducts,
         ordersByStatus,
         revenueByDay,

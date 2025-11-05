@@ -32,6 +32,7 @@ interface OrderItem {
 }
 
 interface Order {
+  id?: string;
   orderNumber: string;
   items: OrderItem[];
   customer: {
@@ -82,45 +83,81 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [statusFilter, searchQuery]); // Reload when filters change
 
   useEffect(() => {
     filterOrders();
   }, [searchQuery, statusFilter, orders]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadOrders = () => {
+  const loadOrders = async () => {
     try {
-      const savedOrders = localStorage.getItem("orders");
-      if (savedOrders) {
-        const parsed = JSON.parse(savedOrders);
-        // Add status if not present (for older orders)
-        const ordersWithStatus = parsed.map((order: Order) => ({
-          ...order,
-          status: order.status || getOrderStatus(order),
-        }));
-        setOrders(ordersWithStatus);
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
       }
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+
+      const response = await fetch(`/api/admin/orders?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+      }
+
+      const apiOrders = await response.json();
+      
+      // Transform API orders to match component format
+      const transformedOrders: Order[] = apiOrders.map((order: any) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        items: order.orderItems.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          product: {
+            id: item.variant.product.id,
+            name: item.variant.product.name,
+            price: Number(item.price),
+            images: item.variant.product.images || [],
+            slug: item.variant.product.slug,
+          },
+        })),
+        customer: {
+          firstName: order.addressName.split(" ")[0] || "",
+          lastName: order.addressName.split(" ").slice(1).join(" ") || "",
+          email: order.user?.email || "",
+          phone: order.addressPhone,
+        },
+        address: {
+          street: order.addressStreet,
+          city: order.addressCity,
+          state: order.addressState,
+          pincode: order.addressPincode,
+        },
+        delivery: {
+          date: order.deliveryDate ? new Date(order.deliveryDate).toISOString().split("T")[0] : "",
+          slot: order.deliverySlot || "",
+        },
+        payment: {
+          method: order.paymentMethod || "COD",
+        },
+        totals: {
+          subtotal: Number(order.subtotal),
+          tax: Number(order.taxAmount),
+          shipping: Number(order.shippingAmount),
+          total: Number(order.totalAmount),
+        },
+        status: order.status?.toLowerCase() || "pending",
+        createdAt: order.createdAt,
+      }));
+
+      setOrders(transformedOrders);
     } catch (error) {
       console.error("Error loading orders:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const getOrderStatus = (order: Order): string => {
-    const orderDate = new Date(order.createdAt);
-    const now = new Date();
-    const hoursSinceOrder = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
-
-    if (hoursSinceOrder < 1) return "confirmed";
-    if (hoursSinceOrder < 2) return "packed";
-    if (hoursSinceOrder < 24) return "shipped";
-    return "delivered";
-  };
-
-  const saveOrders = (updatedOrders: Order[]) => {
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
   };
 
   const filterOrders = () => {
@@ -151,13 +188,44 @@ export default function AdminOrders() {
     setFilteredOrders(filtered);
   };
 
-  const updateOrderStatus = (orderNumber: string, newStatus: string) => {
-    const updated = orders.map((o) =>
-      o.orderNumber === orderNumber ? { ...o, status: newStatus } : o
-    );
-    saveOrders(updated);
-    if (selectedOrder?.orderNumber === orderNumber) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
+  const updateOrderStatus = async (orderNumber: string, newStatus: string) => {
+    try {
+      // Find order ID
+      const order = orders.find((o) => o.orderNumber === orderNumber);
+      if (!order?.id) {
+        alert("Order ID not found");
+        return;
+      }
+
+      // Update via API
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus.toUpperCase(),
+        }),
+      });
+
+      if (response.ok) {
+        // Reload orders
+        await loadOrders();
+        
+        // Update selected order if it matches
+        if (selectedOrder?.orderNumber === orderNumber) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to update order status (${response.status})`;
+        console.error("Order status update error:", errorMessage);
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update order status";
+      alert(errorMessage);
     }
   };
 

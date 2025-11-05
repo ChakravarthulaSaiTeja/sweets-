@@ -2,16 +2,14 @@
 
 /**
  * Client-side Category Page
- * Reacts to admin panel changes in real-time
+ * Fetches products by category from API
  */
 
-import { Suspense } from "react";
-import { getAllProducts } from "@/lib/static-data";
+import { useEffect, useState } from "react";
 import { ProductGrid } from "@/components/products/ProductGrid";
 import { CategoryHeader } from "@/components/products/CategoryHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import Link from "next/link";
-import { useAdminData } from "@/hooks/useAdminData";
 
 const categoryMap: Record<
   string,
@@ -52,10 +50,50 @@ interface CategoryPageClientProps {
   slug: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  images: string[];
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  isActive: boolean;
+  isVisible: boolean;
+}
+
 export default function CategoryPageClient({ slug }: CategoryPageClientProps) {
-  const allProducts = useAdminData("adminProducts", getAllProducts(), getAllProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const categoryInfo = categoryMap[slug];
-  
+
+  useEffect(() => {
+    async function loadProducts() {
+      if (!categoryInfo) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/products?category=${slug}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data.products || []);
+        }
+      } catch (error) {
+        console.error("Error loading products:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProducts();
+  }, [slug, categoryInfo]);
+
   if (!categoryInfo) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FFF7EE]">
@@ -77,16 +115,6 @@ export default function CategoryPageClient({ slug }: CategoryPageClientProps) {
     );
   }
 
-  interface Product {
-    category?: { slug: string };
-    isActive?: boolean;
-    isVisible?: boolean;
-  }
-  
-  const products = allProducts.filter((p: Product) => 
-    p.category?.slug === categoryInfo.slug && p.isActive !== false && p.isVisible !== false
-  );
-
   return (
     <div className="min-h-screen bg-[#FFF7EE]">
       {/* Category Header */}
@@ -98,10 +126,11 @@ export default function CategoryPageClient({ slug }: CategoryPageClientProps) {
 
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Suspense fallback={<LoadingSpinner />}>
-          {products && products.length > 0 ? (
-            <ProductGrid products={products} />
-          ) : (
+        {loading ? (
+          <LoadingSpinner />
+        ) : products.length > 0 ? (
+          <ProductGrid products={products} />
+        ) : (
             <div className="text-center py-12">
               <div className="text-[#8B1A1A] mb-4">
                 <svg
@@ -126,7 +155,6 @@ export default function CategoryPageClient({ slug }: CategoryPageClientProps) {
               </p>
             </div>
           )}
-        </Suspense>
       </div>
     </div>
   );

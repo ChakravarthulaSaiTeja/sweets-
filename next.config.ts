@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
         hostname: 'www.masala.tv',
       },
       {
+        protocol: 'http',
+        hostname: 'www.masala.tv',
+      },
+      {
         protocol: 'https',
         hostname: 'www.palatesdesire.com',
       },

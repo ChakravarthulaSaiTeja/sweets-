@@ -18,11 +18,13 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/utils";
 import { useCart } from "@/contexts/cart-context";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, User, LogOut, Settings } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 
-// Navigation menu items - excludes "Sweets" as per requirements
+// Navigation menu items
 const navigation = [
   { name: "Home", href: "/" },
+  { name: "Sweets", href: "/products/sweets" },
   { name: "Hot Snacks", href: "/products/hot-snacks" },
   { name: "Pickles", href: "/products/pickles" },
   { name: "Powders", href: "/products/powders" },
@@ -34,8 +36,11 @@ const navigation = [
 export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { state } = useCart();
   const cartItemCount = state?.totalItems || 0;
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -57,6 +62,18 @@ export function Navigation() {
       document.body.style.overflow = "unset";
     };
   }, [isMobileMenuOpen]);
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isProfileMenuOpen && !(event.target as Element).closest('.profile-menu-container')) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileMenuOpen]);
 
   return (
     <>
@@ -116,48 +133,117 @@ export function Navigation() {
                       </span>
                     </Link>
                     
-                    <Link
-                      href="/auth/signin"
-                      className="relative px-6 py-2.5 text-sm font-semibold border-2 rounded transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden signin-button-link"
-                      style={{
-                        borderColor: '#8B1A1A',
-                        borderRadius: '6px',
-                        backgroundColor: 'white',
-                        color: '#8B1A1A'
-                      }}
-                    >
-                      {/* Text and Icon */}
-                      <span className="relative z-20 flex items-center gap-2 signin-button-content">
-                        <span>Sign In</span>
-                        <svg className="w-4 h-4 signin-button-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                      </span>
-                    </Link>
-                    
-                    <Link
-                      href="/auth/signup"
-                      className="relative text-white px-6 py-2.5 text-sm font-semibold transition-all duration-300 shadow-md hover:shadow-lg overflow-hidden group"
-                      style={{
-                        background: 'linear-gradient(to right, #8B1A1A, #D4AF37)',
-                        boxShadow: '0 2px 8px rgba(139, 26, 26, 0.25)',
-                        borderRadius: '6px'
-                      }}
-                    >
-                      {/* Hover effect */}
-                      <span 
-                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={{background: 'linear-gradient(to right, #7A1515, #B8941F)', borderRadius: '6px'}}
-                      ></span>
-                      
-                      {/* Text */}
-                      <span className="relative z-10 flex items-center gap-2">
-                        Sign Up
-                        <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
-                      </span>
-                    </Link>
+                    {/* User Profile or Auth Buttons */}
+                    {isAuthenticated ? (
+                      <div className="relative profile-menu-container">
+                        <button
+                          onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                          className="relative px-4 py-2.5 text-sm font-semibold border-2 rounded transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden group bg-white flex items-center gap-2"
+                          style={{
+                            color: '#8B1A1A',
+                            borderColor: '#8B1A1A',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          <User className="w-5 h-5" />
+                          <span className="hidden lg:inline">
+                            {session?.user?.name || session?.user?.email?.split('@')[0] || 'Profile'}
+                          </span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        
+                        {/* Profile Dropdown Menu */}
+                        {isProfileMenuOpen && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border-2 border-amber-200 z-50">
+                            <div className="py-2">
+                              <div className="px-4 py-2 border-b border-amber-200">
+                                <p className="text-sm font-semibold text-[#8B1A1A]">
+                                  {session?.user?.name || 'User'}
+                                </p>
+                                <p className="text-xs text-[#8B1A1A]/70">
+                                  {session?.user?.email}
+                                </p>
+                              </div>
+                              <Link
+                                href="/profile"
+                                className="flex items-center px-4 py-2 text-sm text-[#8B1A1A] hover:bg-[#FFF7EE] transition-colors"
+                                onClick={() => setIsProfileMenuOpen(false)}
+                              >
+                                <User className="w-4 h-4 mr-2" />
+                                My Profile
+                              </Link>
+                              {(session?.user as { role?: string })?.role === "ADMIN" && (
+                                <Link
+                                  href="/admin"
+                                  className="flex items-center px-4 py-2 text-sm text-[#8B1A1A] hover:bg-[#FFF7EE] transition-colors"
+                                  onClick={() => setIsProfileMenuOpen(false)}
+                                >
+                                  <Settings className="w-4 h-4 mr-2" />
+                                  Admin Panel
+                                </Link>
+                              )}
+                              <button
+                                onClick={() => {
+                                  signOut({ callbackUrl: '/' });
+                                  setIsProfileMenuOpen(false);
+                                }}
+                                className="w-full flex items-center px-4 py-2 text-sm text-[#8B1A1A] hover:bg-[#FFF7EE] transition-colors text-left"
+                              >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Sign Out
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <Link
+                          href="/auth/signin"
+                          className="relative px-6 py-2.5 text-sm font-semibold border-2 rounded transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden signin-button-link"
+                          style={{
+                            borderColor: '#8B1A1A',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            color: '#8B1A1A'
+                          }}
+                        >
+                          {/* Text and Icon */}
+                          <span className="relative z-20 flex items-center gap-2 signin-button-content">
+                            <span>Sign In</span>
+                            <svg className="w-4 h-4 signin-button-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </span>
+                        </Link>
+                        
+                        <Link
+                          href="/auth/signup"
+                          className="relative text-white px-6 py-2.5 text-sm font-semibold transition-all duration-300 shadow-md hover:shadow-lg overflow-hidden group"
+                          style={{
+                            background: 'linear-gradient(to right, #8B1A1A, #D4AF37)',
+                            boxShadow: '0 2px 8px rgba(139, 26, 26, 0.25)',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          {/* Hover effect */}
+                          <span 
+                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            style={{background: 'linear-gradient(to right, #7A1515, #B8941F)', borderRadius: '6px'}}
+                          ></span>
+                          
+                          {/* Text */}
+                          <span className="relative z-10 flex items-center gap-2">
+                            Sign Up
+                            <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                          </span>
+                        </Link>
+                      </>
+                    )}
                   </div>
 
               {/* Mobile menu button */}
@@ -295,41 +381,104 @@ export function Navigation() {
                         )}
                       </span>
                     </Link>
-                    <Link
-                      href="/auth/signin"
-                      className="relative block px-4 py-3 text-base font-semibold border-2 border-[#8B1A1A] transition-all duration-300 text-center shadow-sm hover:shadow-md overflow-hidden signin-button-link"
-                      style={{
-                        borderRadius: '6px',
-                        backgroundColor: 'white',
-                        color: '#8B1A1A'
-                      }}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <span className="relative z-20 flex items-center justify-center gap-2 signin-button-content">
-                        <span>Sign In</span>
-                        <svg className="w-4 h-4 signin-button-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                      </span>
-                    </Link>
-                <Link
-                  href="/auth/signup"
-                  className="relative text-white block px-4 py-3 text-base font-semibold transition-all duration-300 text-center shadow-md hover:shadow-lg overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(to right, #8B1A1A, #D4AF37)',
-                    boxShadow: '0 2px 8px rgba(139, 26, 26, 0.25)',
-                    borderRadius: '6px'
-                  }}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{background: 'linear-gradient(to right, #7A1515, #B8941F)', borderRadius: '6px'}}></span>
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    Sign Up
-                    <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                  </span>
-                </Link>
+                    
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-4 py-3 border-2 border-amber-200 rounded-lg bg-[#FFF7EE]">
+                          <p className="text-sm font-semibold text-[#8B1A1A]">
+                            {session?.user?.name || 'User'}
+                          </p>
+                          <p className="text-xs text-[#8B1A1A]/70">
+                            {session?.user?.email}
+                          </p>
+                        </div>
+                        <Link
+                          href="/profile"
+                          className="relative block px-4 py-3 text-base font-semibold border-2 border-[#8B1A1A] transition-all duration-300 text-center shadow-sm hover:shadow-md bg-white"
+                          style={{
+                            borderRadius: '6px',
+                            color: '#8B1A1A'
+                          }}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <span className="flex items-center justify-center gap-2">
+                            <User className="w-5 h-5" />
+                            My Profile
+                          </span>
+                        </Link>
+                        {(session?.user as { role?: string })?.role === "ADMIN" && (
+                          <Link
+                            href="/admin"
+                            className="relative block px-4 py-3 text-base font-semibold border-2 border-[#8B1A1A] transition-all duration-300 text-center shadow-sm hover:shadow-md bg-white"
+                            style={{
+                              borderRadius: '6px',
+                              color: '#8B1A1A'
+                            }}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <span className="flex items-center justify-center gap-2">
+                              <Settings className="w-5 h-5" />
+                              Admin Panel
+                            </span>
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => {
+                            signOut({ callbackUrl: '/' });
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full relative text-white block px-4 py-3 text-base font-semibold transition-all duration-300 text-center shadow-md hover:shadow-lg overflow-hidden group"
+                          style={{
+                            background: 'linear-gradient(to right, #8B1A1A, #D4AF37)',
+                            boxShadow: '0 2px 8px rgba(139, 26, 26, 0.25)',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            <LogOut className="w-5 h-5" />
+                            Sign Out
+                          </span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/auth/signin"
+                          className="relative block px-4 py-3 text-base font-semibold border-2 border-[#8B1A1A] transition-all duration-300 text-center shadow-sm hover:shadow-md overflow-hidden signin-button-link"
+                          style={{
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            color: '#8B1A1A'
+                          }}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <span className="relative z-20 flex items-center justify-center gap-2 signin-button-content">
+                            <span>Sign In</span>
+                            <svg className="w-4 h-4 signin-button-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </span>
+                        </Link>
+                        <Link
+                          href="/auth/signup"
+                          className="relative text-white block px-4 py-3 text-base font-semibold transition-all duration-300 text-center shadow-md hover:shadow-lg overflow-hidden group"
+                          style={{
+                            background: 'linear-gradient(to right, #8B1A1A, #D4AF37)',
+                            boxShadow: '0 2px 8px rgba(139, 26, 26, 0.25)',
+                            borderRadius: '6px'
+                          }}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{background: 'linear-gradient(to right, #7A1515, #B8941F)', borderRadius: '6px'}}></span>
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            Sign Up
+                            <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                          </span>
+                        </Link>
+                      </>
+                    )}
               </div>
             </div>
           </div>

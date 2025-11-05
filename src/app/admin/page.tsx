@@ -36,50 +36,26 @@ export default function AdminDashboard() {
 
   const fetchDashboardStats = async () => {
     try {
-      // Load real data from localStorage
-      const products = JSON.parse(localStorage.getItem("adminProducts") || "[]");
-      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-      
-      // If no products in localStorage, use static data
-      const allProducts = products.length > 0 
-        ? products 
-        : (await import("@/lib/static-data")).getAllProducts();
-      
-      const totalProducts = allProducts.length;
-      const totalOrders = orders.length;
-      interface Order {
-        totals?: { total: number };
-        customer?: { email?: string };
+      setLoading(true);
+      const response = await fetch("/api/admin/analytics");
+      if (!response.ok) {
+        throw new Error("Failed to fetch analytics");
       }
-      
-      interface Promotion {
-        active: boolean;
-      }
-      
-      const totalRevenue = orders.reduce(
-        (sum: number, order: Order) => sum + (order.totals?.total || 0),
-        0
-      );
-      
-      // Count unique customers (by email)
-      const uniqueCustomers = new Set(orders.map((order: Order) => order.customer?.email || "")).size;
-      
-      // Count active promotions (from localStorage or default)
-      const promotions: Promotion[] = JSON.parse(localStorage.getItem("promotions") || "[]");
-      const activePromotions = promotions.filter((p: Promotion) => p.active).length;
+
+      const analytics = await response.json();
       
       setStats({
-        totalProducts,
-        totalOrders,
-        totalUsers: uniqueCustomers || orders.length, // Fallback to order count if no emails
-        totalRevenue,
-        activePromotions,
+        totalProducts: analytics.totalProducts || 0,
+        totalOrders: analytics.totalOrders || 0,
+        totalUsers: analytics.totalUsers || 0,
+        totalRevenue: Number(analytics.totalRevenue) || 0,
+        activePromotions: analytics.activePromotions || 0,
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       // Fallback to placeholder data
       setStats({
-        totalProducts: 24,
+        totalProducts: 0,
         totalOrders: 0,
         totalUsers: 0,
         totalRevenue: 0,
@@ -344,18 +320,33 @@ function RecentOrdersList() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
 
   useEffect(() => {
-    try {
-      const orders: RecentOrder[] = JSON.parse(localStorage.getItem("orders") || "[]");
-      // Get 5 most recent orders
-      const sorted = orders
-        .sort((a: RecentOrder, b: RecentOrder) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-        .slice(0, 5);
-      setRecentOrders(sorted);
-    } catch (error) {
-      console.error("Error loading recent orders:", error);
-    }
+    const loadRecentOrders = async () => {
+      try {
+        const response = await fetch("/api/admin/orders?limit=5");
+        if (response.ok) {
+          const orders = await response.json();
+          // Transform API orders to match component format
+          const transformedOrders: RecentOrder[] = orders.slice(0, 5).map((order: any) => ({
+            id: order.id,
+            orderNumber: order.orderNumber,
+            customer: {
+              name: order.addressName || "Customer",
+              email: order.user?.email || "",
+            },
+            totals: {
+              total: Number(order.totalAmount) || 0,
+            },
+            createdAt: order.createdAt,
+          }));
+          setRecentOrders(transformedOrders);
+        } else {
+          console.error("Failed to load recent orders");
+        }
+      } catch (error) {
+        console.error("Error loading recent orders:", error);
+      }
+    };
+    loadRecentOrders();
   }, []);
 
   if (recentOrders.length === 0) {

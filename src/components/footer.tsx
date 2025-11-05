@@ -144,11 +144,11 @@ export function Footer() {
 
         {/* Bottom section */}
         <div className="border-t mt-8 pt-8" style={{borderColor: 'rgba(255, 255, 255, 0.2)'}}>
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-sm" style={{color: '#ffffff', opacity: 0.7}}>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-sm text-center md:text-left" style={{color: '#ffffff', opacity: 0.7}}>
               © 2024 Kotaiah&apos;s Foods. All rights reserved.
             </div>
-            <div className="flex space-x-6 mt-4 md:mt-0">
+            <div className="flex space-x-6">
               <Link
                 href="/privacy"
                 className="text-sm transition-colors duration-200 hover:text-[#D4AF37]"
@@ -163,6 +163,11 @@ export function Footer() {
               >
                 Terms of Service
               </Link>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <div className="text-xs" style={{color: '#ffffff', opacity: 0.5, fontSize: '12px'}}>
+              Order Kotaiah Foods sweets online with delivery in Hyderabad. Authentic handmade sweets since 125 years.
             </div>
           </div>
         </div>

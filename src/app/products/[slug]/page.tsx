@@ -3,33 +3,13 @@
  * 
  * Handles both category pages and individual product pages.
  * Determines if the slug is a category or product and renders accordingly.
- * Generates static pages for all products and categories at build time.
  */
 
-import { getAllProducts, getAllCategories, getProductBySlug } from "@/lib/static-data";
 import ProductDetailClient from "./product-detail-client";
 import CategoryPageClient from "./category-page-client";
 import Link from "next/link";
-
-/**
- * Generates static params for all products and categories at build time
- * Required for static export with dynamic routes
- */
-export async function generateStaticParams() {
-  const products = getAllProducts();
-  const categories = getAllCategories();
-  
-  // Combine product slugs and category slugs
-  const productParams = products.map((product: { slug: string }) => ({
-    slug: product.slug,
-  }));
-  
-  const categoryParams = categories.map((category: { slug: string }) => ({
-    slug: category.slug,
-  }));
-  
-  return [...productParams, ...categoryParams];
-}
+import type { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
 
 const categoryMap: Record<
   string,
@@ -72,13 +52,99 @@ interface SlugPageProps {
   }>;
 }
 
+/**
+ * Generate dynamic metadata for product pages
+ */
+export async function generateMetadata({ params }: SlugPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  
+  try {
+    // Fetch product from database
+    const product = await prisma.product.findUnique({
+      where: {
+        slug,
+        isVisible: true,
+        isActive: true,
+      },
+      select: {
+        name: true,
+        description: true,
+        images: true,
+        metaTitle: true,
+        metaDescription: true,
+      },
+    });
+
+    if (product) {
+      const title = product.metaTitle || `${product.name} | Kotaiah Foods`;
+      const description = product.metaDescription || product.description;
+      const imageUrl = product.images && product.images.length > 0 ? product.images[0] : undefined;
+
+      return {
+        title,
+        description,
+        openGraph: {
+          title,
+          description,
+          images: imageUrl ? [{ url: imageUrl }] : [],
+        },
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching product for metadata:", error);
+  }
+
+  // Default metadata if not a product
+  return {
+    title: "Kotaiah Foods",
+    description: "Traditional Indian sweets and foods",
+  };
+}
+
 export default async function SlugPage({ params }: SlugPageProps) {
   const { slug } = await params;
   
-  // First check if it's a product
-  const product = getProductBySlug(slug);
-  if (product) {
-    return <ProductDetailClient slug={slug} />;
+  // First check if it's a product by querying database
+  try {
+    const product = await prisma.product.findUnique({
+      where: {
+        slug,
+        isVisible: true,
+        isActive: true,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        variants: {
+          where: {
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            sku: true,
+            inventoryQty: true,
+            weight: true,
+            packSize: true,
+          },
+          orderBy: {
+            price: "asc",
+          },
+        },
+      },
+    });
+    
+    if (product) {
+      return <ProductDetailClient product={product} />;
+    }
+  } catch (error) {
+    console.error("Error fetching product:", error);
   }
   
   // Then check if it's a category

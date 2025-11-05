@@ -38,24 +38,24 @@ export default function CartPage() {
   /**
    * Updates item quantity or removes if quantity reaches 0
    */
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
+  const handleUpdateQuantity = (variantId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(variantId);
     } else {
-      updateCartQuantity(productId, quantity);
+      updateCartQuantity(variantId, quantity);
     }
   };
 
   /**
    * Removes an item from the cart
    */
-  const handleRemoveItem = (productId: string) => {
-    removeFromCart(productId);
+  const handleRemoveItem = (variantId: string) => {
+    removeFromCart(variantId);
   };
 
   const subtotal =
     state?.items?.reduce(
-      (total, item) => total + item.product.price * item.quantity,
+      (total, item) => total + (item.variant?.price || item.product.price) * item.quantity,
       0,
     ) || 0;
   const tax = subtotal * 0.18; // 18% tax
@@ -155,7 +155,7 @@ export default function CartPage() {
                         <button
                           onClick={() =>
                             handleUpdateQuantity(
-                              item.productId,
+                              item.variantId,
                               item.quantity - 1,
                             )
                           }
@@ -169,7 +169,7 @@ export default function CartPage() {
                         <button
                           onClick={() =>
                             handleUpdateQuantity(
-                              item.productId,
+                              item.variantId,
                               item.quantity + 1,
                             )
                           }
@@ -181,12 +181,12 @@ export default function CartPage() {
 
                       {/* Item Total */}
                       <div className="text-lg font-semibold text-[#8B1A1A]">
-                        {formatPrice(item.product.price * item.quantity)}
+                        {formatPrice((item.variant?.price || item.product.price) * item.quantity)}
                       </div>
 
                       {/* Remove Button */}
                       <button
-                        onClick={() => handleRemoveItem(item.productId)}
+                        onClick={() => handleRemoveItem(item.variantId)}
                         className="p-2 text-[#FFB347] hover:bg-[#fee2e2] rounded-full transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />

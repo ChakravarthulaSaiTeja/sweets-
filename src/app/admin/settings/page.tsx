@@ -46,21 +46,54 @@ export default function AdminSettings() {
     loadSettings();
   }, []);
 
-  const loadSettings = () => {
+  const loadSettings = async () => {
     try {
-      const savedSettings = localStorage.getItem("adminSettings");
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+      const response = await fetch("/api/admin/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setSettings({
+          storeName: data.storeName || "Kotaiah's Foods",
+          storeEmail: data.storeEmail || "info@kotaiahsweets.com",
+          storePhone: data.storePhone || "+91 9876543210",
+          storeAddress: data.storeAddress || "123 Heritage Street, Old City, Hyderabad, Telangana 500001",
+          taxRate: data.taxRate || 18,
+          shippingCost: data.shippingCost || 50,
+          freeShippingThreshold: data.freeShippingThreshold || 500,
+          deliverySlots: data.deliverySlots || ["09:00-12:00", "12:00-15:00", "15:00-18:00", "18:00-21:00"],
+          currency: data.currency || "INR",
+        });
+      } else {
+        console.error("Failed to load settings");
       }
     } catch (error) {
       console.error("Error loading settings:", error);
     }
   };
 
-  const saveSettings = () => {
-    localStorage.setItem("adminSettings", JSON.stringify(settings));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const saveSettings = async () => {
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(settings),
+      });
+
+      if (response.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.error || `Failed to save settings (${response.status})`;
+        console.error("Settings save error:", errorMessage);
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to save settings";
+      alert(errorMessage);
+    }
   };
 
   const handleChange = (field: keyof Settings, value: string | number | string[]) => {

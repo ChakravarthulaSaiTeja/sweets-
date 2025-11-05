@@ -2,20 +2,79 @@
 
 /**
  * Client-side Products Page
- * Reacts to admin panel changes in real-time
+ * Fetches products and categories from API
  */
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ProductGrid } from "@/components/products/ProductGrid";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import Link from "next/link";
 import { ArrowRight, Filter } from "lucide-react";
-import { getAllProducts, getAllCategories } from "@/lib/static-data";
-import { useAdminData } from "@/hooks/useAdminData";
+import { fetchProducts } from "@/lib/api";
+
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  originalPrice?: number | null;
+  images: string[];
+  isBestSeller: boolean;
+  isFeatured: boolean;
+  isActive: boolean;
+  isVisible: boolean;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  variants?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    inventoryQty: number;
+  }>;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  isActive: boolean;
+}
 
 export default function ProductsPageClient() {
-  const products = useAdminData("adminProducts", getAllProducts(), getAllProducts);
-  const categories = useAdminData("adminCategories", getAllCategories(), getAllCategories);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Fetch products
+        const productsResponse = await fetch("/api/products");
+        if (productsResponse.ok) {
+          const productsData = await productsResponse.json();
+          setProducts(productsData.products || []);
+        }
+
+        // Fetch categories
+        const categoriesResponse = await fetch("/api/categories");
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          setCategories(categoriesData || []);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FFF7EE]">
@@ -59,7 +118,7 @@ export default function ProductsPageClient() {
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {categories.map((category: { id: string; name: string; slug: string; description?: string; isActive?: boolean }) => (
+            {categories.map((category) => (
               <Link
                 key={category.id}
                 href={`/products/${category.slug}`}
@@ -95,10 +154,11 @@ export default function ProductsPageClient() {
           </div>
         </div>
 
-        <Suspense fallback={<LoadingSpinner />}>
-          {products.length > 0 ? (
-            <ProductGrid products={products.filter((p: { isActive?: boolean; isVisible?: boolean }) => p.isActive !== false && p.isVisible !== false)} />
-          ) : (
+        {loading ? (
+          <LoadingSpinner />
+        ) : products.length > 0 ? (
+          <ProductGrid products={products} />
+        ) : (
             <div className="text-center py-12">
               <div className="text-[#8B1A1A] mb-4">
                 <svg
@@ -130,7 +190,6 @@ export default function ProductsPageClient() {
               </Link>
             </div>
           )}
-        </Suspense>
       </div>
     </div>
   );
